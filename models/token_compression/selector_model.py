@@ -28,7 +28,7 @@ from models.qwen3vl.modeling_qwen3_vl import (
     Qwen3VLModelOutputWithPast,
     Qwen3VLVisionModel,
 )
-from selector_scorer import TransformerScorer
+from .selector_scorer import TransformerScorer
 
 # --- Start of new Differentiable TopK implementation ---
 sigmoid = torch.sigmoid
