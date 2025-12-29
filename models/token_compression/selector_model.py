@@ -1,12 +1,11 @@
 from copy import deepcopy
 import os
-from typing import List, Optional, Tuple, Union, Unpack
+from typing import  Optional, Union, Unpack
 
 import torch
 from torch import vmap
 from torch.autograd import Function
 from torch.func import grad
-from torch.nn import CrossEntropyLoss
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import Cache

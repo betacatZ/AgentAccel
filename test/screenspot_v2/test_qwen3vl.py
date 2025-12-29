@@ -135,7 +135,7 @@ for task in tasks:
                     "source": item["data_source"],
                 }
             )
-        except:
+        except Exception:
             num_wrong_format += 1
             if item["data_type"] == "text":
                 text_correct.append(0)

@@ -2,11 +2,12 @@ import argparse
 import json
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 from PIL import Image
 from tqdm import tqdm
 import yaml
+
 from tester import Qwen3VLTester
 
 
