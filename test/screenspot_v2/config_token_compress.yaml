@@ -1,0 +1,10 @@
+# Screenspot v2 evaluation config (example)
+desc: Evaluate Qwen3VL model on Screenspot v2 dataset
+exp_name: qwen3vl_token_compress_screenspot_v2
+
+model: qwen3vl_vision_selector
+model_path: /path/to/qwen3vl
+dataset_path: /path/to/dataset
+task: mobile # mobile|desktop|web|all
+budgets: 0.5
+

@@ -80,9 +80,8 @@ def parse_json_response(response_str: str, is_guided_decoding: bool = True) -> d
 
 
 class MobiMindTester(BaseTester):
-    def __init__(self, model_path: str, device: str = "cuda") -> None:
-        super().__init__(model_path, device)
-        super().__init__(model_path, device)
+    def __init__(self, model_path: str, device: str = "cuda", **kwargs) -> None:
+        super().__init__(model_path, device, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
         self.decider = Qwen3VLForConditionalGeneration.from_pretrained(
             model_path,

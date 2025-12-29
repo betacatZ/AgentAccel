@@ -1,38 +1,33 @@
-import json
-from typing import Optional, Tuple
-
-import torch
 from PIL import Image
-from transformers import AutoTokenizer, AutoProcessor, Qwen3VLForConditionalGeneration
-from transformers.generation.configuration_utils import GenerationConfig
+import torch
+from transformers import AutoProcessor, AutoTokenizer
+from transformers import GenerationConfig
+
+from models.token_compression.selector_model import (
+    Qwen3_VLForConditionalGeneration_Selector,
+)
 
 from .base_tester import BaseTester
 from .util import convert_pil_image_to_base64
+import json
 
 
-class Qwen3VLTester(BaseTester):
+class Qwen3VLVisionSelectorTester(BaseTester):
     def __init__(self, model_path: str, device: str = "cuda", **kwargs) -> None:
-        super().__init__(model_path, device)
+        super().__init__(model_path, device, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-        self.model = Qwen3VLForConditionalGeneration.from_pretrained(
+        self.model = Qwen3_VLForConditionalGeneration_Selector.from_pretrained(
             model_path,
             device_map=device,
             torch_dtype=torch.bfloat16,
             attn_implementation="flash_attention_2",
         ).eval()
+        self.model.visual.budgets = kwargs.get("budgets", None)
         self.processor = AutoProcessor.from_pretrained(model_path)
 
         generation_config = GenerationConfig.from_pretrained(model_path, trust_remote_code=True).to_dict()
         generation_config.update(do_sample=False, temperature=0.0)
         self.model.generation_config = GenerationConfig(**generation_config)
-
-        # self.system_prompt = (
-        #     "\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\n"
-        #     "You are provided with function signatures within <tools></tools> XML tags:\n<tools>\n"
-        #     '{"type": "function", "function": {"name": "mobile_use", "description": "Use a touchscreen to interact with a mobile device, and take screenshots.\\n* This is an interface to a mobile device with touchscreen. You can perform actions like clicking, typing, swiping, etc.\\n* Some applications may take time to start or process actions, so you may need to wait and take successive screenshots to see the results of your actions.\\n* The screen\'s resolution is 999x999.\\n* Make sure to click any buttons, links, icons, etc with the cursor tip in the center of the element. Don\'t click boxes on their edges unless asked.", "parameters": {"properties": {"action": {"description": "The action to perform. The available actions are:\\n* `click`: Click the point on the screen with coordinate (x, y).\\n* `long_press`: Press the point on the screen with coordinate (x, y) for specified seconds.\\n* `swipe`: Swipe from the starting point with coordinate (x, y) to the end point with coordinates2 (x2, y2).\\n* `type`: Input the specified text into the activated input box.\\n* `answer`: Output the answer.\\n* `system_button`: Press the system button.\\n* `wait`: Wait specified seconds for the change to happen.\\n* `terminate`: Terminate the current task and report its completion status.", "enum": ["click", "long_press", "swipe", "type", "answer", "system_button", "wait", "terminate"], "type": "string"}, "coordinate": {"description": "(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates to move the mouse to. Required only by `action=click`, `action=long_press`, and `action=swipe`.", "type": "array"}, "coordinate2": {"description": "(x, y): The x (pixels from the left edge) and y (pixels from the top edge) coordinates to move the mouse to. Required only by `action=swipe`.", "type": "array"}, "text": {"description": "Required only by `action=type` and `action=answer`.", "type": "string"}, "time": {"description": "The seconds to wait. Required only by `action=long_press` and `action=wait"."", "type": "number"}, "button": {"description": "Back means returning to the previous interface, Home means returning to the desktop, Menu means opening the application background menu, and Enter means pressing the enter. Required only by `action=system_button`", "enum": ["Back", "Home", "Menu", "Enter"], "type": "string"}, "status": {"description": "The status of the task. Required only by `action=terminate`.", "type": "string", "enum": ["success", "failure"]}}, "required": ["action"], "type": "object"}}}\n</tools>\n\n'
-        #     "For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
-        #     '<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>\n\n'
-        # )
         self.system_prompt = self.system_prompt = """
         # Tools
 
@@ -89,8 +84,6 @@ class Qwen3VLTester(BaseTester):
         - Do not output anything else outside those three parts.
         """
 
-        # self.guide_text = '<tool_call>\n{"name": "mobile_use", "arguments": {"action": "click", "coordinate": ['
-
     def generate_click_coordinate(self, instruction: str, image: Image.Image):
         messages = [
             {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
@@ -105,7 +98,6 @@ class Qwen3VLTester(BaseTester):
                 ],
             },
         ]
-
         text_input = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         # text_input = text_input + self.guide_text
 
@@ -127,7 +119,7 @@ class Qwen3VLTester(BaseTester):
 
         return coordinates, response
 
-    def _parse_output(self, response: str) -> Optional[Tuple[float, float]]:
+    def _parse_output(self, response: str) -> tuple[float, float] | None:
         try:
             action = json.loads(response.split("<tool_call>\n")[1].split("\n</tool_call>")[0])
             if action["arguments"]["action"] == "click":
@@ -135,13 +127,6 @@ class Qwen3VLTester(BaseTester):
                 coordinates = [coordinates[0] / 999, coordinates[1] / 999]
                 if isinstance(coordinates, list) and len(coordinates) == 2:
                     return tuple(coordinates)
-
-            # action_json = response.split("<tool_call>\n", 1)[1]
-            # action = json.loads(action_json)
-            # coordinates = action.get("arguments", {}).get("coordinate")
-            # if isinstance(coordinates, list) and len(coordinates) == 2:
-            #     x, y = coordinates
-            #     return float(x) / 1000.0, float(y) / 1000.0
         except Exception:
             return None
         return None
