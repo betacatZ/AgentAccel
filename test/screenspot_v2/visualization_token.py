@@ -158,7 +158,7 @@ def visualize_token_scores(
     image_copy = image.copy()
 
     # 将token分数转换为热力图
-    scores = token_scores.cpu().numpy()
+    scores = token_scores.float().cpu().numpy()
     heatmap = scores.reshape(num_patches_h, num_patches_w)
 
     # 调整热力图大小以匹配图像
