@@ -63,8 +63,10 @@ def visualize_selected_tokens(
 
     # 将图像转换为RGBA模式以支持透明度
     image = image.convert("RGBA")
+
+    # 创建一个透明的覆盖层
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image, "RGBA")
+    draw = ImageDraw.Draw(overlay)
 
     # 计算图像的patch数量
     num_patches_h = height // patch_size
@@ -87,10 +89,11 @@ def visualize_selected_tokens(
             x2 = (col + 1) * patch_size
             y2 = (row + 1) * patch_size
 
-            # 绘制半透明灰色矩形覆盖未选中区域
+            # 在覆盖层上绘制半透明灰色矩形
             draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128), outline=None)
+
+    # 将覆盖层叠加到原始图像上
     image = Image.alpha_composite(image, overlay)
-    # 被选中的token保持原样显示（不绘制红色边框）
 
     # 保存图像
     if save_path:
@@ -159,7 +162,9 @@ def visualize_token_scores(
 
     # 如果有选择的token，将未选中的token设置为半透明
     if selected_indices:
-        draw_copy = ImageDraw.Draw(image_copy, "RGBA")
+        # 创建一个透明覆盖层
+        overlay_copy = Image.new("RGBA", image_copy.size, (0, 0, 0, 0))
+        draw_copy = ImageDraw.Draw(overlay_copy)
         selected_set = set(selected_indices)
 
         # 绘制未被选中的token（半透明灰色覆盖）
@@ -172,6 +177,9 @@ def visualize_token_scores(
                 x2 = (col + 1) * patch_size
                 y2 = (row + 1) * patch_size
                 draw_copy.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128), outline=None)
+
+        # 将覆盖层叠加到image_copy上
+        image_copy = Image.alpha_composite(image_copy, overlay_copy)
 
         # 被选中的token保持原样显示（不绘制红色边框）
 
@@ -194,7 +202,9 @@ def visualize_token_scores(
 
     # 同样处理返回的图像
     if selected_indices:
-        draw = ImageDraw.Draw(image, "RGBA")
+        # 创建一个透明覆盖层
+        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        draw = ImageDraw.Draw(overlay)
         selected_set = set(selected_indices)
 
         # 绘制未被选中的token（半透明灰色覆盖）
@@ -207,6 +217,9 @@ def visualize_token_scores(
                 x2 = (col + 1) * patch_size
                 y2 = (row + 1) * patch_size
                 draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128), outline=None)
+
+        # 将覆盖层叠加到原始图像上
+        image = Image.alpha_composite(image, overlay)
 
         # 被选中的token保持原样显示（不绘制红色边框）
 
