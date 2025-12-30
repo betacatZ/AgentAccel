@@ -200,7 +200,7 @@ def visualize_token_scores(
 
     # 3. 热力图
     plt.subplot(1, 3, 3)
-    plt.imshow(image_copy)
+    plt.imshow(image)
     plt.imshow(heatmap_resized, cmap="jet", alpha=0.5)
     plt.colorbar(label="Token Importance Score", shrink=0.8)
     plt.axis("off")
