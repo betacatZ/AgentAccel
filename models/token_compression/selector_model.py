@@ -1,6 +1,6 @@
 from copy import deepcopy
 import os
-from typing import  Optional, Union, Unpack
+from typing import Optional, Union, Unpack
 
 import torch
 from torch import vmap
@@ -427,6 +427,7 @@ class Qwen3VLVisionModel_Selector(Qwen3VLVisionModel):
         total_token_num = hidden_states.shape[0]
         hidden_states_unsqueezed = hidden_states.unsqueeze(0)
         learned_scores = self.importance_scorer(hidden_states_unsqueezed.detach()).squeeze(0)
+        self.learned_scores = learned_scores
         dominant_num = max(1, int(total_token_num * self.budgets))
         all_indices = learned_scores.topk(dominant_num, dim=0).indices  # get topk indices
         all_indices = all_indices.sort().values
