@@ -207,7 +207,7 @@ def visualize_token_scores(
     plt.title("Token Importance Heatmap")
 
     # 调整子图间距
-    plt.subplots_adjust(wspace=0.1, hspace=0.1)
+    # plt.subplots_adjust(wspace=0.1, hspace=0.1)
     plt.tight_layout()
     # 保存图像
     if save_path:
