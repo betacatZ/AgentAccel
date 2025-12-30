@@ -3,6 +3,9 @@ import os
 import argparse
 from PIL import Image
 from visualization_token import visualize_visionselector_tokens
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
 
 

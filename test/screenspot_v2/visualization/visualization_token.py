@@ -6,6 +6,9 @@ from typing import List, Tuple, Optional
 import argparse
 import yaml
 import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
 
 
