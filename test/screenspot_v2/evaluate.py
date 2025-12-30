@@ -15,7 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     # config
     parser.add_argument("--config", "-c", type=str, default=None, help="path to config.yaml")
-    parser.add_argument("--output", type=str, default="./output")
+    parser.add_argument("--output", type=str, default="test/screenspot_v2/output/")
     args = parser.parse_args()
     return args
 
