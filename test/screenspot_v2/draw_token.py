@@ -184,7 +184,7 @@ def visualize_token_scores(
         # 被选中的token保持原样显示（不绘制红色边框）
 
     # 创建一个包含三个子图的布局
-    plt.figure(figsize=(25, 8))
+    plt.figure(figsize=(20, 8))
 
     # 1. 原始图像
     plt.subplot(1, 3, 1)
@@ -202,33 +202,13 @@ def visualize_token_scores(
     plt.subplot(1, 3, 3)
     plt.imshow(image_copy)
     plt.imshow(heatmap_resized, cmap="jet", alpha=0.5)
-    plt.colorbar(label="Token Importance Score")
+    plt.colorbar(label="Token Importance Score", shrink=0.8)
     plt.axis("off")
     plt.title("Token Importance Heatmap")
 
-    # 同样处理返回的图像
-    if selected_indices:
-        # 创建一个透明覆盖层
-        overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        draw = ImageDraw.Draw(overlay)
-        selected_set = set(selected_indices)
-
-        # 绘制未被选中的token（半透明灰色覆盖）
-        for idx in range(total_tokens):
-            if idx not in selected_set:
-                row = idx // num_patches_w
-                col = idx % num_patches_w
-                x1 = col * patch_size
-                y1 = row * patch_size
-                x2 = (col + 1) * patch_size
-                y2 = (row + 1) * patch_size
-                draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128), outline=None)
-
-        # 将覆盖层叠加到原始图像上
-        image = Image.alpha_composite(image, overlay)
-
-        # 被选中的token保持原样显示（不绘制红色边框）
-
+    # 调整子图间距
+    plt.subplots_adjust(wspace=0.1, hspace=0.1)
+    plt.tight_layout()
     # 保存图像
     if save_path:
         plt.savefig(save_path, bbox_inches="tight", dpi=300)
@@ -236,13 +216,6 @@ def visualize_token_scores(
     # 显示图像
     if show:
         plt.show()
-
-    # 创建热力图叠加的图像
-    heatmap_image = Image.fromarray((heatmap_resized * 255).astype(np.uint8))
-    heatmap_image = heatmap_image.convert("RGBA")
-    overlay_image = Image.blend(image, heatmap_image, alpha=0.5)
-
-    return heatmap_image, overlay_image
 
 
 def get_token_patch_coordinates(
