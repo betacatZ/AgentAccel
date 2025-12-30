@@ -63,6 +63,7 @@ def visualize_selected_tokens(
 
     # 将图像转换为RGBA模式以支持透明度
     image = image.convert("RGBA")
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(image, "RGBA")
 
     # 计算图像的patch数量
@@ -88,7 +89,7 @@ def visualize_selected_tokens(
 
             # 绘制半透明灰色矩形覆盖未选中区域
             draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128), outline=None)
-
+    image = Image.alpha_composite(image, overlay)
     # 被选中的token保持原样显示（不绘制红色边框）
 
     # 保存图像
