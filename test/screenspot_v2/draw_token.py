@@ -90,7 +90,7 @@ def visualize_selected_tokens(
             y2 = (row + 1) * patch_size
 
             # 在覆盖层上绘制半透明灰色矩形
-            draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128), outline=None)
+            draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 255), outline=None)
 
     # 将覆盖层叠加到原始图像上
     image = Image.alpha_composite(image, overlay)
@@ -176,24 +176,30 @@ def visualize_token_scores(
                 y1 = row * patch_size
                 x2 = (col + 1) * patch_size
                 y2 = (row + 1) * patch_size
-                draw_copy.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128), outline=None)
+                draw_copy.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 255), outline=None)
 
         # 将覆盖层叠加到image_copy上
         image_copy = Image.alpha_composite(image_copy, overlay_copy)
 
         # 被选中的token保持原样显示（不绘制红色边框）
 
-    # 绘制热力图
-    plt.figure(figsize=(20, 10))
+    # 创建一个包含三个子图的布局
+    plt.figure(figsize=(25, 8))
 
-    # 原始图像
-    plt.subplot(1, 2, 1)
-    plt.imshow(image_copy)
+    # 1. 原始图像
+    plt.subplot(1, 3, 1)
+    plt.imshow(image)
     plt.axis("off")
     plt.title("Original Image")
 
-    # 热力图
-    plt.subplot(1, 2, 2)
+    # 2. Selector Token（选中的token高亮显示）
+    plt.subplot(1, 3, 2)
+    plt.imshow(image_copy)
+    plt.axis("off")
+    plt.title("Selected Tokens")
+
+    # 3. 热力图
+    plt.subplot(1, 3, 3)
     plt.imshow(image_copy)
     plt.imshow(heatmap_resized, cmap="jet", alpha=0.5)
     plt.colorbar(label="Token Importance Score")
