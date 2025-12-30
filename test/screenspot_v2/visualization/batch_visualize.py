@@ -93,7 +93,7 @@ def main():
     parser = argparse.ArgumentParser(description="批量可视化Qwen3VLVisionSelector的visual token")
     parser.add_argument("--model_path", type=str, required=True, help="模型路径")
     parser.add_argument("--json_path", type=str, required=True, help="JSON文件路径")
-    parser.add_argument("--output", type=str, default="./output", help="输出目录")
+    parser.add_argument("--output", type=str, default="test/screenspot_v2/visualization/output/", help="输出目录")
     parser.add_argument("--budgets", type=float, default=0.5, help="token budget比例")
     parser.add_argument("--show", action="store_true", help="显示可视化结果")
 
