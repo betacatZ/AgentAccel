@@ -63,7 +63,7 @@ def visualize_selected_tokens(
 
     # 将图像转换为RGBA模式以支持透明度
     image = image.convert("RGBA")
-    draw = ImageDraw.Draw(image)
+    draw = ImageDraw.Draw(image, "RGBA")
 
     # 计算图像的patch数量
     num_patches_h = height // patch_size
@@ -158,7 +158,7 @@ def visualize_token_scores(
 
     # 如果有选择的token，将未选中的token设置为半透明
     if selected_indices:
-        draw_copy = ImageDraw.Draw(image_copy)
+        draw_copy = ImageDraw.Draw(image_copy, "RGBA")
         selected_set = set(selected_indices)
 
         # 绘制未被选中的token（半透明灰色覆盖）
@@ -193,7 +193,7 @@ def visualize_token_scores(
 
     # 同样处理返回的图像
     if selected_indices:
-        draw = ImageDraw.Draw(image)
+        draw = ImageDraw.Draw(image, "RGBA")
         selected_set = set(selected_indices)
 
         # 绘制未被选中的token（半透明灰色覆盖）
@@ -219,7 +219,7 @@ def visualize_token_scores(
 
     # 创建热力图叠加的图像
     heatmap_image = Image.fromarray((heatmap_resized * 255).astype(np.uint8))
-    heatmap_image = heatmap_image.convert("RGB")
+    heatmap_image = heatmap_image.convert("RGBA")
     overlay_image = Image.blend(image, heatmap_image, alpha=0.5)
 
     return heatmap_image, overlay_image
