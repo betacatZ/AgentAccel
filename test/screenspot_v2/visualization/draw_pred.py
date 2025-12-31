@@ -1,4 +1,5 @@
 from PIL import Image, ImageDraw
+import os
 
 
 def draw_bbox_and_pred(sample, save_path=None):
@@ -31,17 +32,23 @@ def draw_bbox_and_pred(sample, save_path=None):
     return img
 
 
-# ---------- 示例 sample ----------
-sample = {
-    "img_path": "/data8/zhangdeming/data/OS-Copilot/ScreenSpot-v2/screenspotv2_image/mobile_b550b4ed-79ce-446a-a1c3-a164b314bfe8.png",
-    "text": "check out jony j's album",
-    "bbox": [0.0452991452991453, 0.2713270142180095, 0.9487179487179487, 0.5501579778830964],
-    "pred": [0.899, 0.935],
-    "type": "icon",
-    "source": "ios",
-    "correct": False,
-}
+def main():
+    # ---------- 示例 sample ----------
+    sample = {
+        "img_path": "/data8/zhangdeming/data/OS-Copilot/ScreenSpot-v2/screenspotv2_image/mobile_b550b4ed-79ce-446a-a1c3-a164b314bfe8.png",
+        "text": "check out jony j's album",
+        "bbox": [0.0452991452991453, 0.2713270142180095, 0.9487179487179487, 0.5501579778830964],
+        "pred": [0.899, 0.935],
+        "type": "icon",
+        "source": "ios",
+        "correct": False,
+    }
 
-# ---------- 调用函数 ----------
-save_path = "vis_example.png"
-img = draw_bbox_and_pred(sample, save_path=save_path)
+    # ---------- 调用函数 ----------
+    output_path = "test/screenspot_v2/visualization/output/"
+    save_path = os.path.basename(sample["img_path"]).replace(".png", "_ground.png")
+    img = draw_bbox_and_pred(sample, save_path=os.path.join(output_path, save_path))
+
+
+if __name__ == "__main__":
+    main()
