@@ -86,7 +86,8 @@ def batch_visualize(
                 "success": False,
             }
             results.append(result)
-
+        with open(os.path.join(output_dir, "visualize_results.json"), "w", encoding="utf-8") as f:
+            json.dump(results, f, ensure_ascii=False, indent=4)
     print("\n批量处理完成！")
     print(f"成功: {sum(1 for r in results if r['success'])}/{total}")
     print(f"失败: {sum(1 for r in results if not r['success'])}/{total}")
