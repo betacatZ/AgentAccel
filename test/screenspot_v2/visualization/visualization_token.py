@@ -24,10 +24,8 @@ def resize_to_patch_multiple(image: Image.Image, patch_size: int = 16) -> Tuple[
         调整后的图像和新的图像大小
     """
     width, height = image.size
-
-    # 计算调整后的大小，向上取整到patch_size的倍数
-    new_width = ((width + patch_size - 1) // patch_size) * patch_size
-    new_height = ((height + patch_size - 1) // patch_size) * patch_size
+    new_width = round(width / patch_size) * patch_size
+    new_height = round(height / patch_size) * patch_size
 
     # 如果已经是倍数，不做调整
     if new_width == width and new_height == height:
