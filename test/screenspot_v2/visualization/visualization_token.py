@@ -38,85 +38,6 @@ def resize_to_patch_multiple(image: Image.Image, patch_size: int = 16) -> Tuple[
     return resized_image, (new_width, new_height)
 
 
-def visualize_selected_tokens(
-    image: Image.Image,
-    selected_indices: List[int],
-    patch_size: int = 16,
-    image_size: Optional[Tuple[int, int]] = None,
-    save_path: Optional[str] = None,
-    show: bool = True,
-) -> Image.Image:
-    """
-    可视化visionselector裁剪的token对应的图像区域
-
-    Args:
-        image: 原始图像
-        selected_indices: 选择的token索引列表
-        patch_size: 视觉token的patch大小（默认为16）
-        image_size: 图像的原始大小，如果为None则使用图像的实际大小
-        save_path: 保存可视化结果的路径
-        show: 是否显示可视化结果
-
-    Returns:
-        可视化后的图像
-    """
-    # 调整图像大小
-    if image_size is not None:
-        # 如果指定了image_size，先调整到指定大小，再调整到patch_size的倍数
-        image = image.resize(image_size)
-
-    # 将图像调整到patch_size的倍数
-    image, (width, height) = resize_to_patch_multiple(image, patch_size)
-
-    # 将图像转换为RGBA模式以支持透明度
-    image = image.convert("RGBA")
-
-    # 创建一个透明的覆盖层
-    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(overlay)
-
-    # 计算图像的patch数量
-    num_patches_h = height // patch_size
-    num_patches_w = width // patch_size
-    total_tokens = num_patches_h * num_patches_w
-
-    # 创建集合以便快速查找选中的索引
-    selected_set = set(selected_indices)
-
-    # 绘制未被选中的token（半透明灰色覆盖）
-    for idx in range(total_tokens):
-        if idx not in selected_set:
-            # 计算patch的行和列
-            row = idx // num_patches_w
-            col = idx % num_patches_w
-
-            # 计算patch在图像上的坐标
-            x1 = col * patch_size
-            y1 = row * patch_size
-            x2 = (col + 1) * patch_size
-            y2 = (row + 1) * patch_size
-
-            # 在覆盖层上绘制半透明灰色矩形
-            draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 255), outline=None)
-
-    # 将覆盖层叠加到原始图像上
-    image = Image.alpha_composite(image, overlay)
-
-    # 保存图像
-    if save_path:
-        image.save(save_path)
-
-    # 显示图像
-    if show:
-        plt.figure(figsize=(10, 10))
-        plt.imshow(image)
-        plt.axis("off")
-        plt.title(f"Selected {len(selected_indices)} tokens out of {num_patches_h * num_patches_w}")
-        plt.show()
-
-    return image
-
-
 def visualize_token_scores(
     image: Image.Image,
     token_scores: torch.Tensor,
@@ -125,7 +46,7 @@ def visualize_token_scores(
     image_size: Optional[Tuple[int, int]] = None,
     save_path: Optional[str] = None,
     show: bool = True,
-) -> Tuple[Image.Image, Image.Image]:
+):
     """
     可视化token的分数热力图和选择结果
 
@@ -243,7 +164,7 @@ def visualize_visionselector_tokens(
     tester: Qwen3VLVisionSelectorTester,
     image: Image.Image,
     instruction: str,
-    save_path: str = None,
+    save_path: str,
     show: bool = True,
 ):
     """
@@ -285,16 +206,6 @@ def visualize_visionselector_tokens(
         total_tokens = num_patches_h * num_patches_w
         print(f"总token数量: {total_tokens}")
         print(f"选择比例: {len(selected_indices) / total_tokens * 100:.2f}%")
-
-        # 可视化选择的token
-        print("\n正在可视化选择的token...")
-        visualize_selected_tokens(
-            image=image,
-            selected_indices=selected_indices,
-            patch_size=token_patch_size,
-            save_path=f"{save_path}_selected_tokens.png" if save_path else None,
-            show=False,
-        )
 
     # 检查是否有保存的token分数
     if hasattr(visual_model, "learned_scores"):
@@ -400,12 +311,6 @@ if __name__ == "__main__":
     # total_tokens = (adjusted_height // patch_size) * (adjusted_width // patch_size)
     # token_scores = torch.randn(total_tokens)
     # token_scores = torch.softmax(token_scores, dim=0)
-
-    # # 可视化选择的token
-    # print("\n--- 可视化选择的token ---")
-    # visualize_selected_tokens(
-    #     image=image, selected_indices=selected_indices, patch_size=patch_size, save_path="selected_tokens.png"
-    # )
 
     # # 可视化token分数热力图
     # print("\n--- 可视化token分数热力图 ---")
