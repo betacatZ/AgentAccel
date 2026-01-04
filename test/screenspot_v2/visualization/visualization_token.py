@@ -177,9 +177,9 @@ def visualize_token_scores(
         axes[2].set_title("Selected Tokens")
 
         # 3. 热力图
-        axes[3].imshow(image)
-        axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
-        axes[3].colorbar(label="Token Importance Score", shrink=0.8)
+        im = axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
+        axes[3].imshow(image, alpha=0.5)
+        plt.colorbar(im, ax=axes[3], label="Token Importance Score", shrink=0.8)
         axes[3].axis("off")
         axes[3].set_title("Token Importance Heatmap")
 
