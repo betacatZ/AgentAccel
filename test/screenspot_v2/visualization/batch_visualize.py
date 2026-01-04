@@ -43,13 +43,7 @@ def batch_visualize(
             print(f"[{idx + 1}/{total}] 跳过：图像不存在 {img_path}")
             continue
 
-        print(f"[{idx + 1}/{total}] 处理: {img_path}")
-        print(f"  指令: {instruction}")
-
         try:
-            # 加载图像
-            image = Image.open(img_path).convert("RGB")
-
             # 生成保存路径
             image_name = os.path.splitext(os.path.basename(img_path))[0]
             save_path = os.path.join(output_dir, f"{image_name}_visualize")
@@ -57,23 +51,23 @@ def batch_visualize(
             # 可视化
             coordinates, response = visualize_visionselector_tokens(
                 tester=tester,
-                image=image,
-                instruction=instruction,
                 save_path=save_path,
                 show=show,
+                sample=item,
             )
 
             result = {
                 "index": idx,
                 "img_path": img_path,
                 "instruction": instruction,
-                "coordinates": coordinates,
+                "pred": coordinates,
+                "bbox": item.get("bbox"),
                 "response": response,
                 "success": True,
             }
             results.append(result)
 
-            print(f"  完成: {save_path}_selected_tokens.png")
+            # print(f"  完成: {save_path}_selected_tokens.png")
             print(f"  完成: {save_path}_token_heatmap.png\n")
 
         except Exception as e:

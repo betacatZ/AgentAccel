@@ -36,6 +36,54 @@ def resize_to_patch_multiple(image: Image.Image, patch_size: int = 16) -> Tuple[
     return resized_image, (new_width, new_height)
 
 
+def draw_bbox_and_pred(img, bbox, pred, ax=None, save_path=None):
+    """
+    Draw bbox (blue) and pred point (red) on image.
+
+    Args:
+        img (PIL.Image.Image): 输入图像
+        bbox (list): bbox坐标 [x1, y1, x2, y2]
+        pred (list): pred点坐标 [px, py]
+        ax (matplotlib.axes.Axes | None): 可选的matplotlib轴对象，用于子图绘制
+        save_path (str | None): if set, save visualized image
+
+    Returns:
+        PIL.Image.Image: 绘制后的图像
+    """
+
+    # 创建图像副本以避免修改原始图像
+    img_copy = img.copy()
+    W, H = img_copy.size
+    draw = ImageDraw.Draw(img_copy)
+
+    # ---------- bbox ----------
+    x1, y1, x2, y2 = bbox
+    if 0<=x1<=1 and 0<=y1<=1 and 0<=x2<=1 and 0<=y2<=1:
+        x1, y1 = x1 * W, y1 * H
+        x2, y2 = x2 * W, y2 * H
+    draw.rectangle([x1, y1, x2, y2], outline="blue", width=4)
+
+    # ---------- pred point ----------
+
+    px, py = pred
+    if 0<=px<=1 and 0<=py<=1:
+        px, py = px * W, py * H
+    r = 14
+    draw.ellipse([px - r, py - r, px + r, py + r], fill="red", outline="red")
+
+    # 如果提供了ax，则在子图上显示
+    if ax is not None:
+        ax.imshow(img_copy)
+        ax.axis("off")
+        ax.set_title("Prediction Result")
+
+    # 保存图像
+    if save_path is not None:
+        img_copy.save(save_path)
+
+    return img_copy
+
+
 def visualize_token_scores(
     image: Image.Image,
     token_scores: torch.Tensor,
@@ -44,6 +92,7 @@ def visualize_token_scores(
     image_size: Optional[Tuple[int, int]] = None,
     save_path: Optional[str] = None,
     show: bool = True,
+    sample: Optional[dict] = None,
 ):
     """
     可视化token的分数热力图和选择结果
@@ -109,31 +158,56 @@ def visualize_token_scores(
 
         # 被选中的token保持原样显示（不绘制红色边框）
 
-    # 创建一个包含三个子图的布局
-    plt.figure(figsize=(20, 8))
+    # 创建子图布局
+    if sample is not None:
+        # 如果提供了sample，创建4个子图
+        fig, axes = plt.subplots(1, 4, figsize=(25, 8))
 
-    # 1. 原始图像
-    plt.subplot(1, 3, 1)
-    plt.imshow(image)
-    plt.axis("off")
-    plt.title("Original Image")
+        # 1. 原始图像
+        axes[0].imshow(image)
+        axes[0].axis("off")
+        axes[0].set_title("Original Image")
 
-    # 2. Selector Token（选中的token高亮显示）
-    plt.subplot(1, 3, 2)
-    plt.imshow(image_copy)
-    plt.axis("off")
-    plt.title("Selected Tokens")
+        # 1. bbox and pred point
+        draw_bbox_and_pred(image, sample["bbox"], sample["pred"], ax=axes[1])
+        
+        # 2. Selector Token（选中的token高亮显示）
+        axes[2].imshow(image_copy)
+        axes[2].axis("off")
+        axes[2].set_title("Selected Tokens")
 
-    # 3. 热力图
-    plt.subplot(1, 3, 3)
-    plt.imshow(image)
-    plt.imshow(heatmap_resized, cmap="jet", alpha=0.5)
-    plt.colorbar(label="Token Importance Score", shrink=0.8)
-    plt.axis("off")
-    plt.title("Token Importance Heatmap")
+        # 3. 热力图
+        axes[3].imshow(image)
+        axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
+        axes[3].colorbar(label="Token Importance Score", shrink=0.8)
+        axes[3].axis("off")
+        axes[3].set_title("Token Importance Heatmap")
+
+    # else:
+    #     # 否则，保持原来的3个子图布局
+    #     plt.figure(figsize=(20, 8))
+
+    #     # 1. 原始图像
+    #     plt.subplot(1, 3, 1)
+    #     plt.imshow(image)
+    #     plt.axis("off")
+    #     plt.title("Original Image")
+
+    #     # 2. Selector Token（选中的token高亮显示）
+    #     plt.subplot(1, 3, 2)
+    #     plt.imshow(image_copy)
+    #     plt.axis("off")
+    #     plt.title("Selected Tokens")
+
+    #     # 3. 热力图
+    #     plt.subplot(1, 3, 3)
+    #     plt.imshow(image)
+    #     plt.imshow(heatmap_resized, cmap="jet", alpha=0.5)
+    #     plt.colorbar(label="Token Importance Score", shrink=0.8)
+    #     plt.axis("off")
+    #     plt.title("Token Importance Heatmap")
 
     # 调整子图间距
-    # plt.subplots_adjust(wspace=0.1, hspace=0.1)
     plt.tight_layout()
     # 保存图像
     if save_path:
@@ -160,9 +234,8 @@ def load_config(path: str):
 
 def visualize_visionselector_tokens(
     tester: Qwen3VLVisionSelectorTester,
-    image: Image.Image,
-    instruction: str,
     save_path: str,
+    sample: dict,
     show: bool = True,
 ):
     """
@@ -174,8 +247,12 @@ def visualize_visionselector_tokens(
         instruction: 指令文本
         save_path: 保存路径（不含扩展名）
         show: 是否显示可视化结果
+        sample: 包含bbox和pred的样本字典（可选）
     """
     # 获取模型的visual模块
+    img_path = sample["img_path"]
+    image = Image.open(img_path).convert("RGB")
+    instruction = sample["text"]
     visual_model = tester.model.model.visual
 
     # 获取patch_size
@@ -219,6 +296,7 @@ def visualize_visionselector_tokens(
             patch_size=token_patch_size,
             save_path=f"{save_path}_token_heatmap.png" if save_path else None,
             show=show,
+            sample=sample,
         )
 
     return coordinates, response
@@ -241,29 +319,28 @@ def main():
     tester = Qwen3VLVisionSelectorTester(args.model_path, budgets=args.budgets)
     print("模型加载完成")
 
-    # 加载图像
-    print(f"\n正在加载图像: {args.image_path}")
-    image = Image.open(args.image_path).convert("RGB")
-    print(f"原始图像大小: {image.size}")
-
     # 生成保存路径
     image_name = os.path.splitext(os.path.basename(args.image_path))[0]
     save_path = os.path.join(args.output, f"{image_name}_visualize")
+    sample = {
+        "img_path": args.image_path,
+        "text": args.instruction,
+        "bbox": [0.64,0.10,0.92,0.18],
 
+    }
     # 可视化
     print("\n开始可视化...")
     print(f"指令: {args.instruction}")
     coordinates, response = visualize_visionselector_tokens(
         tester=tester,
-        image=image,
-        instruction=args.instruction,
         save_path=save_path,
         show=False,
+        sample=sample,
     )
 
     print("\n可视化完成！")
     print("输出文件:")
-    print(f"- {save_path}_selected_tokens.png: 显示选择的token区域")
+    # print(f"- {save_path}_selected_tokens.png: 显示选择的token区域")
     print(f"- {save_path}_token_heatmap.png: 显示token分数热力图")
 
 

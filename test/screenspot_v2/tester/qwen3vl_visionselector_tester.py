@@ -22,7 +22,10 @@ class Qwen3VLVisionSelectorTester(BaseTester):
             torch_dtype=torch.bfloat16,
             attn_implementation="flash_attention_2",
         ).eval()
-        self.model.visual.budgets = kwargs.get("budgets", None)
+
+        budgets = kwargs.get("budgets", None)
+        if budgets is not None:
+            self.model.visual.budgets = budgets
         self.processor = AutoProcessor.from_pretrained(model_path)
 
         generation_config = GenerationConfig.from_pretrained(model_path, trust_remote_code=True).to_dict()
