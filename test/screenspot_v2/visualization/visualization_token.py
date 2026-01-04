@@ -294,7 +294,7 @@ def visualize_visionselector_tokens(
             token_scores=token_scores,
             selected_indices=selected_indices if hasattr(visual_model, "last_selected_indices") else None,
             patch_size=token_patch_size,
-            save_path=f"{save_path}_token_heatmap.png" if save_path else None,
+            save_path=f"{save_path}_visualize.png" if save_path else None,
             show=show,
             sample=sample,
         )
@@ -341,7 +341,7 @@ def main():
     print("\n可视化完成！")
     print("输出文件:")
     # print(f"- {save_path}_selected_tokens.png: 显示选择的token区域")
-    print(f"- {save_path}_token_heatmap.png: 显示token分数热力图")
+    print(f"- {save_path}_visualize.png: 显示token分数热力图")
 
 
 if __name__ == "__main__":

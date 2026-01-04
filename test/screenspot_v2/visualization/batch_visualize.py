@@ -68,7 +68,7 @@ def batch_visualize(
             results.append(result)
 
             # print(f"  完成: {save_path}_selected_tokens.png")
-            print(f"  完成: {save_path}_token_heatmap.png\n")
+            print(f"  完成: {save_path}_visualize.png\n")
 
         except Exception as e:
             print(f"  错误: {str(e)}\n")
