@@ -63,7 +63,6 @@ def batch_visualize(
                 "pred": coordinates,
                 "bbox": item.get("bbox"),
                 "response": response,
-                "success": True,
             }
             results.append(result)
 
@@ -77,7 +76,6 @@ def batch_visualize(
                 "img_path": img_path,
                 "instruction": instruction,
                 "error": str(e),
-                "success": False,
             }
             results.append(result)
         with open(os.path.join(output_dir, "visualize_results.json"), "w", encoding="utf-8") as f:

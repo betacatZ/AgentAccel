@@ -12,9 +12,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
 
 
-def resize_to_patch_multiple(image: Image.Image, patch_size: int = 16) -> Tuple[Image.Image, Tuple[int, int]]:
+def align_size_to_patch(image: Image.Image, patch_size: int = 16) -> Tuple[int, int]:
     """
-    将图像调整到patch_size的倍数大小（向上取整）
+    将图像调整到patch_size的倍数大小，获得新的图像大小
 
     Args:
         image: 原始图像
@@ -29,11 +29,9 @@ def resize_to_patch_multiple(image: Image.Image, patch_size: int = 16) -> Tuple[
 
     # 如果已经是倍数，不做调整
     if new_width == width and new_height == height:
-        return image, (width, height)
+        return (width, height)
 
-    # 调整图像大小
-    resized_image = image.resize((new_width, new_height))
-    return resized_image, (new_width, new_height)
+    return (new_width, new_height)
 
 
 def draw_bbox_and_pred(img, bbox, pred, ax=None, save_path=None):
@@ -58,7 +56,7 @@ def draw_bbox_and_pred(img, bbox, pred, ax=None, save_path=None):
 
     # ---------- bbox ----------
     x1, y1, x2, y2 = bbox
-    if 0<=x1<=1 and 0<=y1<=1 and 0<=x2<=1 and 0<=y2<=1:
+    if 0 <= x1 <= 1 and 0 <= y1 <= 1 and 0 <= x2 <= 1 and 0 <= y2 <= 1:
         x1, y1 = x1 * W, y1 * H
         x2, y2 = x2 * W, y2 * H
     draw.rectangle([x1, y1, x2, y2], outline="blue", width=4)
@@ -66,7 +64,7 @@ def draw_bbox_and_pred(img, bbox, pred, ax=None, save_path=None):
     # ---------- pred point ----------
 
     px, py = pred
-    if 0<=px<=1 and 0<=py<=1:
+    if 0 <= px <= 1 and 0 <= py <= 1:
         px, py = px * W, py * H
     r = 14
     draw.ellipse([px - r, py - r, px + r, py + r], fill="red", outline="red")
@@ -84,21 +82,24 @@ def draw_bbox_and_pred(img, bbox, pred, ax=None, save_path=None):
     return img_copy
 
 
-def visualize_token_scores(
+def visualize_tokens(
     image: Image.Image,
+    pred,
+    bbox,
     token_scores: torch.Tensor,
     selected_indices: Optional[List[int]] = None,
     patch_size: int = 16,
     image_size: Optional[Tuple[int, int]] = None,
     save_path: Optional[str] = None,
     show: bool = True,
-    sample: Optional[dict] = None,
 ):
     """
     可视化token的分数热力图和选择结果
 
     Args:
         image: 原始图像
+        pred: 预测点坐标 [px, py]
+        bbox: bbox坐标 [x1, y1, x2, y2]
         token_scores: 所有token的分数
         selected_indices: 选择的token索引列表（可选）
         patch_size: 视觉token的patch大小（默认为16）
@@ -115,7 +116,7 @@ def visualize_token_scores(
         image = image.resize(image_size)
 
     # 将图像调整到patch_size的倍数
-    image, (width, height) = resize_to_patch_multiple(image, patch_size)
+    (width, height) = align_size_to_patch(image, patch_size)
 
     # 将图像转换为RGBA模式以支持透明度
     image = image.convert("RGBA")
@@ -159,29 +160,29 @@ def visualize_token_scores(
         # 被选中的token保持原样显示（不绘制红色边框）
 
     # 创建子图布局
-    if sample is not None:
-        # 如果提供了sample，创建4个子图
-        fig, axes = plt.subplots(1, 4, figsize=(25, 8))
 
-        # 1. 原始图像
-        axes[0].imshow(image)
-        axes[0].axis("off")
-        axes[0].set_title("Original Image")
+    # 如果提供了sample，创建4个子图
+    fig, axes = plt.subplots(1, 4, figsize=(25, 8))
 
-        # 1. bbox and pred point
-        draw_bbox_and_pred(image, sample["bbox"], sample["pred"], ax=axes[1])
-        
-        # 2. Selector Token（选中的token高亮显示）
-        axes[2].imshow(image_copy)
-        axes[2].axis("off")
-        axes[2].set_title("Selected Tokens")
+    # 1. 原始图像
+    axes[0].imshow(image)
+    axes[0].axis("off")
+    axes[0].set_title("Original Image")
 
-        # 3. 热力图
-        im = axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
-        axes[3].imshow(image, alpha=0.5)
-        plt.colorbar(im, ax=axes[3], label="Token Importance Score", shrink=0.8)
-        axes[3].axis("off")
-        axes[3].set_title("Token Importance Heatmap")
+    # 1. bbox and pred point
+    draw_bbox_and_pred(image, bbox, pred, ax=axes[1])
+
+    # 2. Selector Token（选中的token高亮显示）
+    axes[2].imshow(image_copy)
+    axes[2].axis("off")
+    axes[2].set_title("Selected Tokens")
+
+    # 3. 热力图
+    im = axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
+    axes[3].imshow(image, alpha=0.5)
+    plt.colorbar(im, ax=axes[3], label="Token Importance Score", shrink=0.8)
+    axes[3].axis("off")
+    axes[3].set_title("Token Importance Heatmap")
 
     # else:
     #     # 否则，保持原来的3个子图布局
@@ -261,7 +262,7 @@ def visualize_visionselector_tokens(
     token_patch_size = patch_size * spatial_merge_size
 
     # 调整图像大小到patch_size的倍数
-    image, (width, height) = resize_to_patch_multiple(image, token_patch_size)
+    (width, height) = align_size_to_patch(image, token_patch_size)
     print(f"调整后的图像大小: {width}x{height}")
 
     # 调用模型生成点击坐标（这会触发visual token选择）
@@ -289,14 +290,15 @@ def visualize_visionselector_tokens(
 
         # 可视化token分数热力图
         print("正在可视化token分数热力图...")
-        visualize_token_scores(
+        visualize_tokens(
             image=image,
             token_scores=token_scores,
             selected_indices=selected_indices if hasattr(visual_model, "last_selected_indices") else None,
             patch_size=token_patch_size,
             save_path=f"{save_path}_visualize.png" if save_path else None,
             show=show,
-            sample=sample,
+            bbox=sample["bbox"],
+            pred=coordinates,
         )
 
     return coordinates, response
@@ -325,8 +327,7 @@ def main():
     sample = {
         "img_path": args.image_path,
         "text": args.instruction,
-        "bbox": [0.64,0.10,0.92,0.18],
-
+        "bbox": [0.64, 0.10, 0.92, 0.18],
     }
     # 可视化
     print("\n开始可视化...")
