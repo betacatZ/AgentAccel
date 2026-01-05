@@ -178,11 +178,21 @@ def visualize_tokens(
     axes[2].set_title("Selected Tokens")
 
     # 3. 热力图
-    im = axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
     axes[3].imshow(image, alpha=0.5)
-    plt.colorbar(im, ax=axes[3], label="Token Importance Score", shrink=0.8)
+    im = axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
     axes[3].axis("off")
     axes[3].set_title("Token Importance Heatmap")
+
+    # ✅ “属于子图4”的 colorbar
+    cbar = fig.colorbar(
+        im,
+        ax=axes[3],
+        fraction=0.035,
+        pad=0.02,
+        shrink=0.85,
+    )
+
+    cbar.set_label("Token Importance Score")
 
     # else:
     #     # 否则，保持原来的3个子图布局
