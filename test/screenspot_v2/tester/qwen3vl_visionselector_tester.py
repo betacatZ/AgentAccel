@@ -4,7 +4,7 @@ from transformers import AutoProcessor, AutoTokenizer
 from transformers import GenerationConfig
 
 from models.token_compression.selector_model import (
-    Qwen3_VLForConditionalGeneration_Selector,
+    Qwen3VLForConditionalGeneration_Selector,
 )
 
 from .base_tester import BaseTester
@@ -16,7 +16,7 @@ class Qwen3VLVisionSelectorTester(BaseTester):
     def __init__(self, model_path: str, device: str = "cuda", **kwargs) -> None:
         super().__init__(model_path, device, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-        self.model = Qwen3_VLForConditionalGeneration_Selector.from_pretrained(
+        self.model = Qwen3VLForConditionalGeneration_Selector.from_pretrained(
             model_path,
             device_map=device,
             torch_dtype=torch.bfloat16,

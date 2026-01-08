@@ -630,7 +630,7 @@ class Qwen3VLModel_Selector(Qwen3VLModel):
         )
 
 
-class Qwen3_VLForConditionalGeneration_Selector(Qwen3VLForConditionalGeneration):
+class Qwen3VLForConditionalGeneration_Selector(Qwen3VLForConditionalGeneration):
     def __init__(self, config):
         super().__init__(config)
         self.model = Qwen3VLModel_Selector(config)
