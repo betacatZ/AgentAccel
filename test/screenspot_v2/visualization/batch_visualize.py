@@ -46,7 +46,7 @@ def batch_visualize(
         try:
             # 生成保存路径
             image_name = os.path.splitext(os.path.basename(img_path))[0]
-            save_path = os.path.join(output_dir, f"{image_name}_visualize")
+            save_path = os.path.join(output_dir, f"{idx:03d}_{image_name}_visualize")
 
             # 可视化
             coordinates, response = visualize_visionselector_tokens(
