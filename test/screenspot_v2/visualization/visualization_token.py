@@ -7,6 +7,7 @@ import argparse
 import yaml
 import os
 import sys
+from matplotlib.colors import Normalize
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
@@ -131,6 +132,8 @@ def visualize_tokens(
 
     # 将token分数转换为热力图
     scores = token_scores.float().cpu().numpy()
+    norm = Normalize(vmin=np.min(scores), vmax=np.max(scores))
+    scores = norm(scores)
     heatmap = scores.reshape(num_patches_h, num_patches_w)
 
     # 调整热力图大小以匹配图像
@@ -296,6 +299,7 @@ def visualize_visionselector_tokens(
     # 检查是否有保存的token分数
     if hasattr(visual_model, "learned_scores"):
         token_scores = visual_model.learned_scores
+
         print(f"\nToken分数形状: {token_scores.shape}")
 
         # 可视化token分数热力图
