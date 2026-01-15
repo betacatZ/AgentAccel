@@ -122,53 +122,52 @@ class Qwen3VLVisionSelectorTester(BaseTester):
 
         return coordinates, response
 
+    # def generate_click_coordinate_batch(self, instructions: list[str], images: list[Image.Image]):
+    #     """
+    #     批量生成点击坐标。
 
-    def generate_click_coordinate_batch(self, instructions: list[str], images: list[Image.Image]):
-        """
-        批量生成点击坐标。
+    #     Args:
+    #         instructions (list[str]): 每张图片对应的 instruction
+    #         images (list[PIL.Image.Image]): 待处理图片列表
 
-        Args:
-            instructions (list[str]): 每张图片对应的 instruction
-            images (list[PIL.Image.Image]): 待处理图片列表
+    #     Returns:
+    #         click_points (list[tuple[float, float] | None]): 每张图片预测的点击坐标
+    #         responses (list[str]): 每张图片的原始模型输出
+    #     """
+    #     messages_batch = []
+    #     for instruction, image in zip(instructions, images):
+    #         messages = [
+    #             {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
+    #             {
+    #                 "role": "user",
+    #                 "content": [
+    #                     {"type": "text", "text": instruction},
+    #                     {
+    #                         "type": "image_url",
+    #                         "image_url": {"url": "data:image/png;base64," + convert_pil_image_to_base64(image)},
+    #                     },
+    #                 ],
+    #             },
+    #         ]
+    #         text_input = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+    #         messages_batch.append(text_input)
 
-        Returns:
-            click_points (list[tuple[float, float] | None]): 每张图片预测的点击坐标
-            responses (list[str]): 每张图片的原始模型输出
-        """
-        messages_batch = []
-        for instruction, image in zip(instructions, images):
-            messages = [
-                {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": instruction},
-                        {
-                            "type": "image_url",
-                            "image_url": {"url": "data:image/png;base64," + convert_pil_image_to_base64(image)},
-                        },
-                    ],
-                },
-            ]
-            text_input = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-            messages_batch.append(text_input)
+    #     # 批量编码
+    #     inputs = self.processor(text=messages_batch, images=images, padding=True, return_tensors="pt").to(self.model.device)
 
-        # 批量编码
-        inputs = self.processor(text=messages_batch, images=images, padding=True, return_tensors="pt").to(self.model.device)
+    #     # 批量生成
+    #     generated_ids = self.model.generate(**inputs, max_new_tokens=512)
 
-        # 批量生成
-        generated_ids = self.model.generate(**inputs, max_new_tokens=512)
+    #     # 批量解码
+    #     generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
+    #     responses = self.processor.batch_decode(
+    #         generated_ids_trimmed, skip_special_tokens=False, clean_up_tokenization_spaces=False
+    #     )
 
-        # 批量解码
-        generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
-        responses = self.processor.batch_decode(
-            generated_ids_trimmed, skip_special_tokens=False, clean_up_tokenization_spaces=False
-        )
+    #     # 解析坐标
+    #     click_points = [self._parse_output(resp) for resp in responses]
 
-        # 解析坐标
-        click_points = [self._parse_output(resp) for resp in responses]
-
-        return click_points, responses
+    #     return click_points, responses
 
     def _parse_output(self, response: str) -> tuple[float, float] | None:
         try:
