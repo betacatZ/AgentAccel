@@ -116,42 +116,41 @@ def draw_token_heatmap(
     ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
 ) -> Image.Image:
+    """
+    在图像上绘制 token heatmap（始终带 colorbar）
+    """
     img_copy = image.copy()
     W, H = img_copy.size
+
     num_patches_h = H // patch_size
     num_patches_w = W // patch_size
 
-    scores = token_scores.float().cpu().numpy()
+    scores = token_scores.detach().cpu().numpy()
     scores = (scores - scores.min()) / (scores.max() - scores.min() + 1e-8)
     heatmap = scores.reshape(num_patches_h, num_patches_w)
-    heatmap = np.repeat(np.repeat(heatmap, patch_size, 0), patch_size, 1)
 
-    # 👉 统一逻辑：没有 ax 就自己建
-    created_ax = False
-    if ax is None:
-        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-        created_ax = True
-    else:
-        fig = ax.figure
-
-    ax.imshow(img_copy, alpha=0.4)
-    im = ax.imshow(
-        heatmap,
-        cmap="jet",
-        alpha=0.6,
-        extent=(0, W, H, 0),
+    heatmap_resized = np.repeat(
+        np.repeat(heatmap, patch_size, axis=0),
+        patch_size,
+        axis=1,
     )
-    ax.axis("off")
-    ax.set_title("Token Importance Heatmap")
 
-    # ⭐ 永远加 colorbar
-    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
-    cbar.set_label("Token Importance Score")
+    if ax is not None:
+        ax.imshow(img_copy, alpha=0.5)
+        im = ax.imshow(heatmap_resized, cmap="jet", alpha=0.5)
+        ax.axis("off")
+        ax.set_title("Token Importance Heatmap")
 
-    if save_path:
-        fig.savefig(save_path, bbox_inches="tight", dpi=300)
+        # ✅ colorbar：绑定到 ax 所在的 figure
+        fig = ax.figure
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
 
-    if created_ax:
+    if save_path is not None:
+        # 单独保存时也走 matplotlib，保证 colorbar 一致
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+        draw_token_heatmap(image, token_scores, patch_size, ax=ax)
+        plt.tight_layout()
+        fig.savefig(save_path, dpi=300)
         plt.close(fig)
 
     return img_copy
@@ -166,7 +165,6 @@ def visualize_tokens(
     selected_indices: Optional[List[int]] = None,
     patch_size: int = 16,
     show: bool = True,
-    mode: str = "subplot",
 ):
     """
     可视化原图、bbox/pred、选中tokens和token热力图
@@ -186,26 +184,21 @@ def visualize_tokens(
     fig, axes = plt.subplots(1, 4, figsize=(24, 6))
 
     # 1. 原始图像
-    draw_original_image(image, ax=axes[0], save_path=os.path.join(save_path, "original.png") if mode == "sep" else None)
-    draw_bbox_and_pred(
-        image, bbox, pred, ax=axes[1], save_path=os.path.join(save_path, "bbox_pred.png") if mode == "sep" else None
-    )
-
+    draw_original_image(image, ax=axes[0], save_path=os.path.join(save_path, "original.png"))
+    img_bbox = draw_bbox_and_pred(image, bbox, pred, ax=axes[1], save_path=os.path.join(save_path, "bbox_pred.png"))
     draw_selected_tokens(
-        image,
+        img_bbox,
         selected_indices,
         patch_size,
         ax=axes[2],
-        save_path=os.path.join(save_path, "selected_tokens.png") if mode == "sep" else None,
+        save_path=os.path.join(save_path, "selected_tokens.png"),
     )
-
-    # 4. 热力图
     draw_token_heatmap(
         image,
         token_scores,
         patch_size,
         ax=axes[3],
-        save_path=os.path.join(save_path, "heatmap.png") if mode == "sep" else None,
+        save_path=os.path.join(save_path, "heatmap.png"),
     )
     plt.tight_layout()
     if save_path:
@@ -219,7 +212,6 @@ def visualize_visionselector_tokens(
     save_path: str,
     sample: dict,
     show: bool = True,
-    mode: str = "subplot",
 ):
     """
     可视化Qwen3VLVisionSelector的visual token选择
@@ -271,7 +263,6 @@ def visualize_visionselector_tokens(
             show=show,
             bbox=sample["bbox"],
             pred=coordinates,
-            mode=mode,
         )
 
     return coordinates, response
