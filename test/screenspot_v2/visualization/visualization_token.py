@@ -96,7 +96,7 @@ def draw_selected_tokens(
             col = idx % num_patches_w
             x1, y1 = col * patch_size, row * patch_size
             x2, y2 = (col + 1) * patch_size, (row + 1) * patch_size
-            draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128))
+            draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 255))
 
     img_copy = Image.alpha_composite(img_copy, overlay)
 
@@ -111,31 +111,49 @@ def draw_selected_tokens(
 
 def draw_token_heatmap(
     image: Image.Image,
-    token_scores: np.ndarray,
+    token_scores: torch.Tensor,
     patch_size: int,
     ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
 ) -> Image.Image:
-    img_copy = image.copy().convert("RGBA")
+    img_copy = image.copy()
     W, H = img_copy.size
     num_patches_h = H // patch_size
     num_patches_w = W // patch_size
 
-    scores = np.array(token_scores)
+    scores = token_scores.detach().cpu().numpy()
     scores = (scores - scores.min()) / (scores.max() - scores.min() + 1e-8)
     heatmap = scores.reshape(num_patches_h, num_patches_w)
-    heatmap_resized = np.repeat(np.repeat(heatmap, patch_size, axis=0), patch_size, axis=1)
+    heatmap = np.repeat(np.repeat(heatmap, patch_size, 0), patch_size, 1)
 
-    heatmap_img = Image.fromarray((plt.cm.jet(heatmap_resized)[:, :, :3] * 255).astype(np.uint8))
-    heatmap_img = heatmap_img.resize(img_copy.size)
-    img_copy = Image.blend(img_copy.convert("RGB"), heatmap_img, alpha=0.5)
+    # 👉 统一逻辑：没有 ax 就自己建
+    created_ax = False
+    if ax is None:
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+        created_ax = True
+    else:
+        fig = ax.figure
 
-    if ax is not None:
-        ax.imshow(img_copy)
-        ax.axis("off")
-        ax.set_title("Token Importance Heatmap")
+    ax.imshow(img_copy, alpha=0.4)
+    im = ax.imshow(
+        heatmap,
+        cmap="jet",
+        alpha=0.6,
+        extent=(0, W, H, 0),
+    )
+    ax.axis("off")
+    ax.set_title("Token Importance Heatmap")
+
+    # ⭐ 永远加 colorbar
+    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
+    cbar.set_label("Token Importance Score")
+
     if save_path:
-        img_copy.save(save_path)
+        fig.savefig(save_path, bbox_inches="tight", dpi=300)
+
+    if created_ax:
+        plt.close(fig)
+
     return img_copy
 
 
