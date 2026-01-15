@@ -202,7 +202,7 @@ def visualize_tokens(
     )
     plt.tight_layout()
     if save_path:
-        plt.savefig(f"{save_path}.png", bbox_inches="tight", dpi=300)
+        plt.savefig(os.path.join(save_path, "all.png"), bbox_inches="tight", dpi=300)
     if show:
         plt.show()
 
