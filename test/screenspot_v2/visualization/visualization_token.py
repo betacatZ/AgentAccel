@@ -162,34 +162,54 @@ def visualize_tokens(
     token_scores: torch.Tensor,
     bbox,
     pred,
+    save_path,
     selected_indices: Optional[List[int]] = None,
     patch_size: int = 16,
-    save_path: Optional[str] = None,
     show: bool = True,
+    mode: str = "subplot",
 ):
     """
     可视化原图、bbox/pred、选中tokens和token热力图
     """
     # 调整图像大小为patch的倍数
     width, height = align_size_to_patch(image, patch_size)
+    print(f"调整后的图像大小: {width}x{height}")
+    # 计算总token数量
+    num_patches_h = height // patch_size
+    num_patches_w = width // patch_size
+    total_tokens = num_patches_h * num_patches_w
+    print(f"总token数量: {total_tokens}")
+    print(f"选择比例: {len(selected_indices) / total_tokens * 100:.2f}%")
+
     image = image.resize((width, height)).convert("RGBA")
 
     fig, axes = plt.subplots(1, 4, figsize=(24, 6))
 
     # 1. 原始图像
-    draw_original_image(image, ax=axes[0])
-    draw_bbox_and_pred(image, bbox, pred, ax=axes[1])
+    draw_original_image(image, ax=axes[0], save_path=os.path.join(save_path, "original.png") if mode == "sep" else None)
+    draw_bbox_and_pred(
+        image, bbox, pred, ax=axes[1], save_path=os.path.join(save_path, "bbox_pred.png") if mode == "sep" else None
+    )
 
-    # 3. 选中token
-    if selected_indices:
-        draw_selected_tokens(image, selected_indices, patch_size, ax=axes[2])
+    draw_selected_tokens(
+        image,
+        selected_indices,
+        patch_size,
+        ax=axes[2],
+        save_path=os.path.join(save_path, "selected_tokens.png") if mode == "sep" else None,
+    )
 
     # 4. 热力图
-    draw_token_heatmap(image, token_scores, patch_size, ax=axes[3])
-
+    draw_token_heatmap(
+        image,
+        token_scores,
+        patch_size,
+        ax=axes[3],
+        save_path=os.path.join(save_path, "heatmap.png") if mode == "sep" else None,
+    )
     plt.tight_layout()
     if save_path:
-        plt.savefig(save_path, bbox_inches="tight", dpi=300)
+        plt.savefig(f"{save_path}.png", bbox_inches="tight", dpi=300)
     if show:
         plt.show()
 
@@ -199,6 +219,7 @@ def visualize_visionselector_tokens(
     save_path: str,
     sample: dict,
     show: bool = True,
+    mode: str = "subplot",
 ):
     """
     可视化Qwen3VLVisionSelector的visual token选择
@@ -222,10 +243,6 @@ def visualize_visionselector_tokens(
     spatial_merge_size = getattr(visual_model, "spatial_merge_size", 2)
     token_patch_size = patch_size * spatial_merge_size
 
-    # 调整图像大小到patch_size的倍数
-    (width, height) = align_size_to_patch(image, token_patch_size)
-    print(f"调整后的图像大小: {width}x{height}")
-
     # 调用模型生成点击坐标（这会触发visual token选择）
     coordinates, response = tester.generate_click_coordinate(instruction, image)
 
@@ -236,13 +253,6 @@ def visualize_visionselector_tokens(
     if hasattr(visual_model, "last_selected_indices"):
         selected_indices = visual_model.last_selected_indices.cpu().tolist()
         print(f"\n选中的token数量: {len(selected_indices)}")
-
-        # 计算总token数量
-        num_patches_h = height // token_patch_size
-        num_patches_w = width // token_patch_size
-        total_tokens = num_patches_h * num_patches_w
-        print(f"总token数量: {total_tokens}")
-        print(f"选择比例: {len(selected_indices) / total_tokens * 100:.2f}%")
 
     # 检查是否有保存的token分数
     if hasattr(visual_model, "learned_scores"):
@@ -257,10 +267,11 @@ def visualize_visionselector_tokens(
             token_scores=token_scores,
             selected_indices=selected_indices if hasattr(visual_model, "last_selected_indices") else None,
             patch_size=token_patch_size,
-            save_path=f"{save_path}.png" if save_path else None,
+            save_path=f"{save_path}" if save_path else None,
             show=show,
             bbox=sample["bbox"],
             pred=coordinates,
+            mode=mode,
         )
 
     return coordinates, response
