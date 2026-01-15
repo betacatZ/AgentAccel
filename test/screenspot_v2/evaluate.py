@@ -168,16 +168,43 @@ def evaluate_batch(tester, dataset_path: str, task: str, batch_size: int = 16) -
 
     # Process in batches
     for i in tqdm(range(0, len(img_paths), batch_size)):
-        batch_imgs = img_paths[i : i + batch_size]
+        batch_img_paths = img_paths[i : i + batch_size]
         batch_insts = instructions[i : i + batch_size]
         batch_meta = meta_info[i : i + batch_size]
 
-        click_points, responses = tester.generate_click_coordinate_batch(
-            batch_insts, batch_imgs
+        # 将图片路径转换为Image对象
+        batch_imgs = []
+        for img_path in batch_img_paths:
+            try:
+                image = Image.open(img_path).convert("RGB")
+                batch_imgs.append(image)
+            except Exception as e:
+                tqdm.write(f"Failed to load image: {img_path}, error: {e}")
+                batch_imgs.append(None)  # 处理加载失败的情况
+
+        # 过滤掉加载失败的图片
+        valid_indices = [i for i, img in enumerate(batch_imgs) if img is not None]
+        if not valid_indices:
+            continue  # 如果批量中没有有效的图片，跳过
+
+        valid_insts = [batch_insts[i] for i in valid_indices]
+        valid_imgs = [batch_imgs[i] for i in valid_indices]
+
+        # 调用批量生成方法
+        click_points_batch, responses_batch = tester.generate_click_coordinate_batch(
+            valid_insts, valid_imgs
         )  # 需要 tester 支持 batch
 
+        # 重建完整的结果列表，保持与输入顺序一致
+        click_points = [None] * len(batch_imgs)
+        responses = [None] * len(batch_imgs)
+
+        for idx, (orig_idx, point, response) in enumerate(zip(valid_indices, click_points_batch, responses_batch)):
+            click_points[orig_idx] = point
+            responses[orig_idx] = response
+
         for j, (img_path, inst, meta, click_point, response) in enumerate(
-            zip(batch_imgs, batch_insts, batch_meta, click_points, responses)
+            zip(batch_img_paths, batch_insts, batch_meta, click_points, responses)
         ):
             num_action += 1
             correct = False
