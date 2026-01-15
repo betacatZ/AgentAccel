@@ -3,9 +3,10 @@ from PIL import Image, ImageDraw
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple, Optional
+from matplotlib.colors import Normalize
+import os
 import argparse
 import yaml
-import os
 import sys
 from matplotlib.colors import Normalize
 
@@ -16,53 +17,46 @@ from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
 def align_size_to_patch(image: Image.Image, patch_size: int = 16) -> Tuple[int, int]:
     """
     将图像调整到patch_size的倍数大小，获得新的图像大小
-
-    Args:
-        image: 原始图像
-        patch_size: patch大小
-
-    Returns:
-        调整后的图像和新的图像大小
     """
     width, height = image.size
     new_width = round(width / patch_size) * patch_size
     new_height = round(height / patch_size) * patch_size
-
-    # 如果已经是倍数，不做调整
     if new_width == width and new_height == height:
-        return (width, height)
+        return width, height
+    return new_width, new_height
 
-    return (new_width, new_height)
+
+def draw_original_image(
+    image: Image.Image,
+    ax: Optional[plt.Axes] = None,
+    save_path: Optional[str] = None,
+) -> Image.Image:
+    img_copy = image.copy()
+    if ax is not None:
+        ax.imshow(img_copy)
+        ax.axis("off")
+        ax.set_title("Original Image")
+    if save_path:
+        img_copy.save(save_path)
+    return img_copy
 
 
-def draw_bbox_and_pred(img, bbox, pred, ax=None, save_path=None):
-    """
-    Draw bbox (blue) and pred point (red) on image.
-
-    Args:
-        img (PIL.Image.Image): 输入图像
-        bbox (list): bbox坐标 [x1, y1, x2, y2]
-        pred (list): pred点坐标 [px, py]
-        ax (matplotlib.axes.Axes | None): 可选的matplotlib轴对象，用于子图绘制
-        save_path (str | None): if set, save visualized image
-
-    Returns:
-        PIL.Image.Image: 绘制后的图像
-    """
-
-    # 创建图像副本以避免修改原始图像
-    img_copy = img.copy()
+def draw_bbox_and_pred(
+    image: Image.Image,
+    bbox: List[float],
+    pred: List[float],
+    ax: Optional[plt.Axes] = None,
+    save_path: Optional[str] = None,
+) -> Image.Image:
+    img_copy = image.copy()
     W, H = img_copy.size
     draw = ImageDraw.Draw(img_copy)
 
-    # ---------- bbox ----------
     x1, y1, x2, y2 = bbox
     if 0 <= x1 <= 1 and 0 <= y1 <= 1 and 0 <= x2 <= 1 and 0 <= y2 <= 1:
         x1, y1 = x1 * W, y1 * H
         x2, y2 = x2 * W, y2 * H
     draw.rectangle([x1, y1, x2, y2], outline="blue", width=4)
-
-    # ---------- pred point ----------
 
     px, py = pred
     if 0 <= px <= 1 and 0 <= py <= 1:
@@ -70,180 +64,116 @@ def draw_bbox_and_pred(img, bbox, pred, ax=None, save_path=None):
     r = 14
     draw.ellipse([px - r, py - r, px + r, py + r], fill="red", outline="red")
 
-    # 如果提供了ax，则在子图上显示
     if ax is not None:
         ax.imshow(img_copy)
         ax.axis("off")
-        ax.set_title("Prediction Result")
-
-    # 保存图像
-    if save_path is not None:
+        ax.set_title("BBox and Prediction")
+    if save_path:
         img_copy.save(save_path)
+    return img_copy
 
+
+def draw_selected_tokens(
+    image: Image.Image,
+    selected_indices: List[int],
+    patch_size: int,
+    ax: Optional[plt.Axes] = None,
+    save_path: Optional[str] = None,
+) -> Image.Image:
+    img_copy = image.copy().convert("RGBA")
+    W, H = img_copy.size
+    num_patches_h = H // patch_size
+    num_patches_w = W // patch_size
+    total_tokens = num_patches_h * num_patches_w
+
+    overlay = Image.new("RGBA", img_copy.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    selected_set = set(selected_indices)
+
+    for idx in range(total_tokens):
+        if idx not in selected_set:
+            row = idx // num_patches_w
+            col = idx % num_patches_w
+            x1, y1 = col * patch_size, row * patch_size
+            x2, y2 = (col + 1) * patch_size, (row + 1) * patch_size
+            draw.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 128))
+
+    img_copy = Image.alpha_composite(img_copy, overlay)
+
+    if ax is not None:
+        ax.imshow(img_copy)
+        ax.axis("off")
+        ax.set_title("Selected Tokens")
+    if save_path:
+        img_copy.save(save_path)
+    return img_copy.convert("RGB")
+
+
+def draw_token_heatmap(
+    image: Image.Image,
+    token_scores: np.ndarray,
+    patch_size: int,
+    ax: Optional[plt.Axes] = None,
+    save_path: Optional[str] = None,
+) -> Image.Image:
+    img_copy = image.copy().convert("RGBA")
+    W, H = img_copy.size
+    num_patches_h = H // patch_size
+    num_patches_w = W // patch_size
+
+    scores = np.array(token_scores)
+    scores = (scores - scores.min()) / (scores.max() - scores.min() + 1e-8)
+    heatmap = scores.reshape(num_patches_h, num_patches_w)
+    heatmap_resized = np.repeat(np.repeat(heatmap, patch_size, axis=0), patch_size, axis=1)
+
+    heatmap_img = Image.fromarray((plt.cm.jet(heatmap_resized)[:, :, :3] * 255).astype(np.uint8))
+    heatmap_img = heatmap_img.resize(img_copy.size)
+    img_copy = Image.blend(img_copy.convert("RGB"), heatmap_img, alpha=0.5)
+
+    if ax is not None:
+        ax.imshow(img_copy)
+        ax.axis("off")
+        ax.set_title("Token Importance Heatmap")
+    if save_path:
+        img_copy.save(save_path)
     return img_copy
 
 
 def visualize_tokens(
     image: Image.Image,
-    pred,
-    bbox,
     token_scores: torch.Tensor,
+    bbox,
+    pred,
     selected_indices: Optional[List[int]] = None,
     patch_size: int = 16,
-    image_size: Optional[Tuple[int, int]] = None,
     save_path: Optional[str] = None,
     show: bool = True,
 ):
     """
-    可视化token的分数热力图和选择结果
-
-    Args:
-        image: 原始图像
-        pred: 预测点坐标 [px, py]
-        bbox: bbox坐标 [x1, y1, x2, y2]
-        token_scores: 所有token的分数
-        selected_indices: 选择的token索引列表（可选）
-        patch_size: 视觉token的patch大小（默认为16）
-        image_size: 图像的原始大小，如果为None则使用图像的实际大小
-        save_path: 保存可视化结果的路径
-        show: 是否显示可视化结果
-
-    Returns:
-        热力图和叠加后的图像
+    可视化原图、bbox/pred、选中tokens和token热力图
     """
-    # 调整图像大小
-    if image_size is not None:
-        # 如果指定了image_size，先调整到指定大小，再调整到patch_size的倍数
-        image = image.resize(image_size)
+    # 调整图像大小为patch的倍数
+    width, height = align_size_to_patch(image, patch_size)
+    image = image.resize((width, height)).convert("RGBA")
 
-    # 将图像调整到patch_size的倍数
-    (width, height) = align_size_to_patch(image, patch_size)
-
-    # 将图像转换为RGBA模式以支持透明度
-    image = image.convert("RGBA")
-
-    # 计算图像的patch数量
-    num_patches_h = height // patch_size
-    num_patches_w = width // patch_size
-    total_tokens = num_patches_h * num_patches_w
-
-    # 创建图像副本用于matplotlib显示
-    image_copy = image.copy()
-
-    # 将token分数转换为热力图
-    scores = token_scores.float().cpu().numpy()
-    norm = Normalize(vmin=np.min(scores), vmax=np.max(scores))
-    scores = norm(scores)
-    heatmap = scores.reshape(num_patches_h, num_patches_w)
-
-    # 调整热力图大小以匹配图像
-    heatmap_resized = np.repeat(np.repeat(heatmap, patch_size, axis=0), patch_size, axis=1)
-
-    # 如果有选择的token，将未选中的token设置为半透明
-    if selected_indices:
-        # 创建一个透明覆盖层
-        overlay_copy = Image.new("RGBA", image_copy.size, (0, 0, 0, 0))
-        draw_copy = ImageDraw.Draw(overlay_copy)
-        selected_set = set(selected_indices)
-
-        # 绘制未被选中的token（半透明灰色覆盖）
-        for idx in range(total_tokens):
-            if idx not in selected_set:
-                row = idx // num_patches_w
-                col = idx % num_patches_w
-                x1 = col * patch_size
-                y1 = row * patch_size
-                x2 = (col + 1) * patch_size
-                y2 = (row + 1) * patch_size
-                draw_copy.rectangle([x1, y1, x2, y2], fill=(128, 128, 128, 255), outline=None)
-
-        # 将覆盖层叠加到image_copy上
-        image_copy = Image.alpha_composite(image_copy, overlay_copy)
-
-        # 被选中的token保持原样显示（不绘制红色边框）
-
-    # 创建子图布局
-
-    # 如果提供了sample，创建4个子图
-    fig, axes = plt.subplots(1, 4, figsize=(25, 8))
+    fig, axes = plt.subplots(1, 4, figsize=(24, 6))
 
     # 1. 原始图像
-    axes[0].imshow(image)
-    axes[0].axis("off")
-    axes[0].set_title("Original Image")
-
-    # 1. bbox and pred point
+    draw_original_image(image, ax=axes[0])
     draw_bbox_and_pred(image, bbox, pred, ax=axes[1])
 
-    # 2. Selector Token（选中的token高亮显示）
-    axes[2].imshow(image_copy)
-    axes[2].axis("off")
-    axes[2].set_title("Selected Tokens")
+    # 3. 选中token
+    if selected_indices:
+        draw_selected_tokens(image, selected_indices, patch_size, ax=axes[2])
 
-    # 3. 热力图
-    axes[3].imshow(image, alpha=0.5)
-    im = axes[3].imshow(heatmap_resized, cmap="jet", alpha=0.5)
-    axes[3].axis("off")
-    axes[3].set_title("Token Importance Heatmap")
+    # 4. 热力图
+    draw_token_heatmap(image, token_scores, patch_size, ax=axes[3])
 
-    # ✅ “属于子图4”的 colorbar
-    cbar = fig.colorbar(
-        im,
-        ax=axes[3],
-        fraction=0.035,
-        pad=0.02,
-        shrink=0.85,
-    )
-
-    cbar.set_label("Token Importance Score")
-
-    # else:
-    #     # 否则，保持原来的3个子图布局
-    #     plt.figure(figsize=(20, 8))
-
-    #     # 1. 原始图像
-    #     plt.subplot(1, 3, 1)
-    #     plt.imshow(image)
-    #     plt.axis("off")
-    #     plt.title("Original Image")
-
-    #     # 2. Selector Token（选中的token高亮显示）
-    #     plt.subplot(1, 3, 2)
-    #     plt.imshow(image_copy)
-    #     plt.axis("off")
-    #     plt.title("Selected Tokens")
-
-    #     # 3. 热力图
-    #     plt.subplot(1, 3, 3)
-    #     plt.imshow(image)
-    #     plt.imshow(heatmap_resized, cmap="jet", alpha=0.5)
-    #     plt.colorbar(label="Token Importance Score", shrink=0.8)
-    #     plt.axis("off")
-    #     plt.title("Token Importance Heatmap")
-
-    # 调整子图间距
     plt.tight_layout()
-    # 保存图像
     if save_path:
         plt.savefig(save_path, bbox_inches="tight", dpi=300)
-
-    # 显示图像
     if show:
         plt.show()
-
-
-def parse_args():
-    parser = argparse.ArgumentParser()
-    # config
-    parser.add_argument("--config", "-c", type=str, default=None, help="path to config.yaml")
-    parser.add_argument("--output", type=str, default="./output")
-    args = parser.parse_args()
-    return args
-
-
-def load_config(path: str):
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
 
 
 def visualize_visionselector_tokens(
