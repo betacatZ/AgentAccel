@@ -180,7 +180,7 @@ def visualize_tokens(
     print(f"选择比例: {len(selected_indices) / total_tokens * 100:.2f}%")
 
     image = image.resize((width, height)).convert("RGBA")
-
+    os.makedirs(save_path, exist_ok=True)
     fig, axes = plt.subplots(1, 4, figsize=(24, 6))
 
     # 1. 原始图像
@@ -306,7 +306,7 @@ def main():
     print("\n可视化完成！")
     print("输出文件:")
     # print(f"- {save_path}_selected_tokens.png: 显示选择的token区域")
-    print(f"- {save_path}.png: 显示token分数热力图")
+    print(f"- {save_path}: 显示token分数热力图")
 
 
 if __name__ == "__main__":
