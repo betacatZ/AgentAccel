@@ -6,9 +6,8 @@ from typing import List, Tuple, Optional
 from matplotlib.colors import Normalize
 import os
 import argparse
-import yaml
 import sys
-from matplotlib.colors import Normalize
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
@@ -108,8 +107,6 @@ def draw_selected_tokens(
         img_copy.save(save_path)
     return img_copy.convert("RGB")
 
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 
 def draw_token_heatmap(
     image: Image.Image,
@@ -127,8 +124,8 @@ def draw_token_heatmap(
         divider = make_axes_locatable(ax)
         cax = divider.append_axes(
             "right",
-            size="3%",
-            pad=0.05,
+            size="6%",
+            pad=0.1,
         )
 
         ax.imshow(image, alpha=0.5)
@@ -213,7 +210,7 @@ def visualize_tokens(
     )
     plt.tight_layout()
     if save_path:
-        plt.savefig(os.path.join(save_path, "all.png"), bbox_inches="tight", dpi=300)
+        plt.savefig(os.path.join(save_path, os.path.basename(save_path) + ".png"), bbox_inches="tight", dpi=300)
     if show:
         plt.show()
 
