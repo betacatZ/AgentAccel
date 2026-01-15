@@ -121,7 +121,7 @@ def draw_token_heatmap(
     num_patches_h = H // patch_size
     num_patches_w = W // patch_size
 
-    scores = token_scores.detach().cpu().numpy()
+    scores = token_scores.float().cpu().numpy()
     scores = (scores - scores.min()) / (scores.max() - scores.min() + 1e-8)
     heatmap = scores.reshape(num_patches_h, num_patches_w)
     heatmap = np.repeat(np.repeat(heatmap, patch_size, 0), patch_size, 1)
