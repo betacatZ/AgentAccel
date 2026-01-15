@@ -108,8 +108,7 @@ def draw_selected_tokens(
         img_copy.save(save_path)
     return img_copy.convert("RGB")
 
-
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def draw_token_heatmap(
@@ -120,27 +119,27 @@ def draw_token_heatmap(
     save_path: Optional[str] = None,
 ):
     """
-    同时：
-    1. 在给定 ax 上绘制 heatmap（用于子图）
-    2. 若提供 save_path，额外生成一张【单独图】并保存
+    在 ax 中绘制 heatmap，并在 ax 内部“右侧”创建 colorbar，不覆盖 image
     """
 
     def _draw(ax, image, heatmap_resized):
+        # 关键：为 colorbar 划空间
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes(
+            "right",
+            size="3%",
+            pad=0.05,
+        )
+
         ax.imshow(image, alpha=0.5)
         im = ax.imshow(heatmap_resized, cmap="jet", alpha=0.5)
+
         ax.axis("off")
         ax.set_title("Token Importance Heatmap")
 
-        # colorbar 永远嵌在该 ax 内
-        cax = inset_axes(
-            ax,
-            width="3%",
-            height="80%",
-            loc="center right",
-            borderpad=1,
-        )
         plt.colorbar(im, cax=cax)
 
+    # ---------- heatmap ----------
     W, H = image.size
     num_patches_h = H // patch_size
     num_patches_w = W // patch_size
@@ -155,7 +154,10 @@ def draw_token_heatmap(
         axis=1,
     )
 
+    # 子图
     _draw(ax, image, heatmap_resized)
+
+    # 单独保存
     if save_path is not None:
         fig, ax_single = plt.subplots(1, 1, figsize=(6, 6))
         _draw(ax_single, image, heatmap_resized)
