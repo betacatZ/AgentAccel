@@ -109,23 +109,43 @@ def draw_selected_tokens(
     return img_copy.convert("RGB")
 
 
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+
 def draw_token_heatmap(
     image: Image.Image,
     token_scores: torch.Tensor,
     patch_size: int,
-    ax: Optional[plt.Axes] = None,
+    ax: plt.Axes,
     save_path: Optional[str] = None,
-) -> Image.Image:
+):
     """
-    在图像上绘制 token heatmap（始终带 colorbar）
+    同时：
+    1. 在给定 ax 上绘制 heatmap（用于子图）
+    2. 若提供 save_path，额外生成一张【单独图】并保存
     """
-    img_copy = image.copy()
-    W, H = img_copy.size
 
+    def _draw(ax, image, heatmap_resized):
+        ax.imshow(image, alpha=0.5)
+        im = ax.imshow(heatmap_resized, cmap="jet", alpha=0.5)
+        ax.axis("off")
+        ax.set_title("Token Importance Heatmap")
+
+        # colorbar 永远嵌在该 ax 内
+        cax = inset_axes(
+            ax,
+            width="3%",
+            height="80%",
+            loc="center right",
+            borderpad=1,
+        )
+        plt.colorbar(im, cax=cax)
+
+    W, H = image.size
     num_patches_h = H // patch_size
     num_patches_w = W // patch_size
 
-    scores = token_scores.float().cpu().numpy()
+    scores = token_scores.detach().cpu().numpy()
     scores = (scores - scores.min()) / (scores.max() - scores.min() + 1e-8)
     heatmap = scores.reshape(num_patches_h, num_patches_w)
 
@@ -135,25 +155,13 @@ def draw_token_heatmap(
         axis=1,
     )
 
-    if ax is not None:
-        ax.imshow(img_copy, alpha=0.5)
-        im = ax.imshow(heatmap_resized, cmap="jet", alpha=0.5)
-        ax.axis("off")
-        ax.set_title("Token Importance Heatmap")
-
-        # ✅ colorbar：绑定到 ax 所在的 figure
-        fig = ax.figure
-        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-
+    _draw(ax, image, heatmap_resized)
     if save_path is not None:
-        # 单独保存时也走 matplotlib，保证 colorbar 一致
-        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-        draw_token_heatmap(image, token_scores, patch_size, ax=ax)
+        fig, ax_single = plt.subplots(1, 1, figsize=(6, 6))
+        _draw(ax_single, image, heatmap_resized)
         plt.tight_layout()
-        fig.savefig(save_path, dpi=300)
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close(fig)
-
-    return img_copy
 
 
 def visualize_tokens(
@@ -185,14 +193,15 @@ def visualize_tokens(
 
     # 1. 原始图像
     draw_original_image(image, ax=axes[0], save_path=os.path.join(save_path, "original.png"))
-    img_bbox = draw_bbox_and_pred(image, bbox, pred, ax=axes[1], save_path=os.path.join(save_path, "bbox_pred.png"))
     draw_selected_tokens(
-        img_bbox,
+        image,
         selected_indices,
         patch_size,
         ax=axes[2],
         save_path=os.path.join(save_path, "selected_tokens.png"),
     )
+    draw_bbox_and_pred(image, bbox, pred, ax=axes[1], save_path=os.path.join(save_path, "bbox_pred.png"))
+
     draw_token_heatmap(
         image,
         token_scores,
