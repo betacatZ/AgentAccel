@@ -33,10 +33,10 @@ def find_range(input_ids, tokenizer):
         if role_str.startswith("user"):
             try:
                 end_idx = input_ids_list.index(vision_start_id, start_idx)
-                text_range = (start_idx, end_idx + 1)
-                start_vision_idx = end_idx
+                text_range = (start_idx + 1, end_idx)
+                start_vision_idx = end_idx + 1
                 end_vision_idx = input_ids_list.index(vision_end_id, start_vision_idx)
-                vision_range = (start_vision_idx, end_vision_idx + 1)
+                vision_range = (start_vision_idx, end_vision_idx)
                 return text_range, vision_range
             except ValueError:
                 continue
