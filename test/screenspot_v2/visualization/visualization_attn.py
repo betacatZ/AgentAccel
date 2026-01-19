@@ -174,7 +174,7 @@ def main():
             last_layer_attention = first_token_attentions[-1]  # [batch, heads, q_len, k_len]
 
             # Average over heads
-            avg_attention = last_layer_attention.mean(dim=1).squeeze(0).cpu().numpy()  # [q_len, k_len]
+            avg_attention = last_layer_attention.mean(dim=1).squeeze(0).float().cpu().numpy()  # [q_len, k_len]
             text_range, vision_range = find_range(inputs["input_ids"], processor.tokenizer)
 
             if text_range is None or vision_range is None:
