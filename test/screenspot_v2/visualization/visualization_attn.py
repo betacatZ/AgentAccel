@@ -1,5 +1,9 @@
 from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 import torch
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.util import convert_pil_image_to_base64
 from PIL import Image
 
