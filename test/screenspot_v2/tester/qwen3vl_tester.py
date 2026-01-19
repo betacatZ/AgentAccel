@@ -33,7 +33,7 @@ class Qwen3VLTester(BaseTester):
         #     "For each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\n"
         #     '<tool_call>\n{"name": <function-name>, "arguments": <args-json-object>}\n</tool_call>\n\n'
         # )
-        self.system_prompt = self.system_prompt = """
+        self.system_prompt = """
         # Tools
 
         You may call one or more functions to assist with the user query.
