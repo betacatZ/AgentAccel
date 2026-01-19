@@ -66,6 +66,8 @@ def main():
     print(f"Loading data from {args.json_path}")
     with open(args.json_path, "r", encoding="utf-8") as f:
         data_list = json.load(f)
+        if type(data_list) is not list:
+            data_list = [data_list]
 
     for idx, item in enumerate(data_list):
         img_path = item.get("img_path")
