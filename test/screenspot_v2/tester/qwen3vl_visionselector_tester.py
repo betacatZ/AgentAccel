@@ -87,7 +87,7 @@ class Qwen3VLVisionSelectorTester(BaseTester):
         - Do not output anything else outside those three parts.
         """
 
-    def generate_click_coordinate(self, instruction: str, image: Image.Image):
+    def generate_click_coordinate(self, instruction: str, img_path):
         messages = [
             {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
             {
@@ -95,18 +95,15 @@ class Qwen3VLVisionSelectorTester(BaseTester):
                 "content": [
                     {"type": "text", "text": instruction},
                     {
-                        "type": "image_url",
-                        "image_url": {"url": "data:image/png;base64," + convert_pil_image_to_base64(image)},
+                        "type": "image",
+                        "image": img_path,
                     },
                 ],
             },
         ]
-        text_input = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-        # text_input = text_input + self.guide_text
-
-        inputs = self.processor(text=[text_input], images=[image], padding=True, return_tensors="pt").to(
-            self.model.device
-        )
+        inputs = self.processor.apply_chat_template(
+            messages, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pt"
+        ).to(self.model.device)
 
         generated_ids = self.model.generate(**inputs, max_new_tokens=512)
         generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]

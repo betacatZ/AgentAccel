@@ -233,7 +233,7 @@ def visualize_visionselector_tokens(
     token_patch_size = patch_size * spatial_merge_size
 
     # 调用模型生成点击坐标（这会触发visual token选择）
-    coordinates, response = tester.generate_click_coordinate(instruction, image)
+    coordinates, response = tester.generate_click_coordinate(instruction, img_path)
 
     print(f"\n生成的响应: {response}")
     print(f"点击坐标: {coordinates}")
