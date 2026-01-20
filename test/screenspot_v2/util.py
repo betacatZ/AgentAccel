@@ -3,6 +3,8 @@ from io import BytesIO
 import json
 import logging
 import re
+from PIL import Image
+from typing import Optional, Tuple
 
 
 def convert_pil_image_to_base64(image):
@@ -68,3 +70,13 @@ def robust_json_loads(s):
     raise ValueError("无法解析 JSON 响应: 响应格式不正确")
 
 
+def align_size_to_patch(image: Image.Image, patch_size: int = 16) -> Tuple[int, int]:
+    """
+    将图像调整到patch_size的倍数大小，获得新的图像大小
+    """
+    width, height = image.size
+    new_width = round(width / patch_size) * patch_size
+    new_height = round(height / patch_size) * patch_size
+    if new_width == width and new_height == height:
+        return width, height
+    return new_width, new_height

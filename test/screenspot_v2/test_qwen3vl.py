@@ -7,7 +7,7 @@ import os
 from PIL import Image
 import logging
 from tqdm import tqdm
-from tester.util import convert_pil_image_to_base64
+from util import convert_pil_image_to_base64
 
 logging.basicConfig(level=logging.INFO)
 torch.manual_seed(1234)

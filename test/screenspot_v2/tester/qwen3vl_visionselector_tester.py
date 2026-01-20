@@ -8,7 +8,7 @@ from models.token_compression.selector_model import (
 )
 
 from .base_tester import BaseTester
-from .util import convert_pil_image_to_base64
+from ..util import convert_pil_image_to_base64
 import json
 
 

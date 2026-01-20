@@ -4,9 +4,10 @@ import os
 import torch
 import matplotlib.pyplot as plt
 from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
+from PIL import Image
+from util import convert_pil_image_to_base64
 
-
-def plot_attention_map(attention_matrix, save_path, title="Attention Map"):
+def plot_attention_map(attention_matrix, tokenizer, image, save_path, title="Attention Map"):
     plt.figure(figsize=(10, 8))
     plt.imshow(attention_matrix, cmap="viridis", aspect="auto")
     plt.colorbar()
@@ -33,7 +34,7 @@ def find_range(input_ids, tokenizer):
         if role_str.startswith("user"):
             try:
                 end_idx = input_ids_list.index(vision_start_id, start_idx)
-                text_range = (start_idx + 3, end_idx) # <|im_start|>user\n
+                text_range = (start_idx + 3, end_idx)  # <|im_start|>user\n
                 start_vision_idx = end_idx + 1
                 end_vision_idx = input_ids_list.index(vision_end_id, start_vision_idx)
                 vision_range = (start_vision_idx, end_vision_idx)
@@ -187,7 +188,14 @@ def main():
             save_name = f"{idx:03d}_{image_name}_attn.png"
             save_path = os.path.join(args.output_dir, save_name)
 
-            plot_attention_map(avg_attention, save_path, title=f"Avg Attention Layer -1\n{instruction[:30]}...")
+            image = Image.open(img_path).convert("RGB")
+            plot_attention_map(
+                avg_attention,
+                processor.tokenizer,
+                img_path,
+                save_path,
+                title=f"Avg Attention Layer -1\n{instruction[:30]}...",
+            )
             print(f"Saved attention map to {save_path}")
 
 

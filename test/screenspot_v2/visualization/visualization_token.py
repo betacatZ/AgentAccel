@@ -13,18 +13,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
 
 
-def align_size_to_patch(image: Image.Image, patch_size: int = 16) -> Tuple[int, int]:
-    """
-    将图像调整到patch_size的倍数大小，获得新的图像大小
-    """
-    width, height = image.size
-    new_width = round(width / patch_size) * patch_size
-    new_height = round(height / patch_size) * patch_size
-    if new_width == width and new_height == height:
-        return width, height
-    return new_width, new_height
-
-
 def draw_original_image(
     image: Image.Image,
     ax: Optional[plt.Axes] = None,
