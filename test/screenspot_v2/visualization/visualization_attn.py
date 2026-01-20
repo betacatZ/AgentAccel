@@ -79,11 +79,11 @@ def find_range(input_ids, tokenizer):
         role_str = tokenizer.decode(role_tokens).strip().lower()
         if role_str.startswith("user"):
             try:
-                end_idx = input_ids_list.index(vision_start_id, start_idx)
-                text_range = (start_idx + 3, end_idx)  # <|im_start|>user\n
-                start_vision_idx = end_idx + 1
-                end_vision_idx = input_ids_list.index(vision_end_id, start_vision_idx)
-                vision_range = (start_vision_idx, end_vision_idx)
+                start_vision_idx = input_ids_list.index(vision_start_id, start_idx)
+                vision_end_idx = input_ids_list.index(vision_end_id, start_vision_idx)
+                vision_range = (start_vision_idx + 1, vision_end_idx)
+                end_idx = input_ids_list.index(im_end_id, vision_end_idx)
+                text_range = (vision_end_idx + 1, end_idx)
                 return text_range, vision_range
             except ValueError:
                 continue
@@ -96,7 +96,7 @@ def main():
     parser.add_argument(
         "--model_path", type=str, default="/data8/zhangdeming/models/Qwen/Qwen3-VL-8B-Instruct", help="Path to model"
     )
-    parser.add_argument("--output_dir", type=str, default="visualization_output", help="Output directory")
+    parser.add_argument("--output_dir", type=str, default="./output/visualization_output", help="Output directory")
     args = parser.parse_args()
     os.makedirs(args.output_dir, exist_ok=True)
 
