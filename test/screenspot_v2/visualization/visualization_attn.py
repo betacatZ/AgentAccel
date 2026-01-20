@@ -242,6 +242,7 @@ def main():
                 width, height = align_size_to_patch(image, patch_size)
                 image = image.resize((width, height))
                 instruction_idx = inputs["input_ids"][0].tolist()[text_range[0] : text_range[1]]
+                temp_text = instruction if len(instruction) <= 30 else instruction[:30] + "..."
                 plot_attention_map(
                     processor.tokenizer,
                     instruction_idx,
@@ -249,7 +250,7 @@ def main():
                     image,
                     patch_size,
                     save_path,
-                    title=f"Avg Attention Layer {layer_idx}/{total_layers - 1}\n{instruction[:30]}...",
+                    title=f"Avg Attention Layer {layer_idx}/{total_layers - 1}\n{temp_text}",
                 )
                 print(f"Saved attention map for layer {layer_idx} to {save_path}")
 
