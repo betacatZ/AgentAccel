@@ -188,11 +188,11 @@ def main():
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": instruction},
                     {
                         "type": "image",
                         "image": img_path,
                     },
+                    {"type": "text", "text": instruction},
                 ],
             },
         ]
@@ -236,7 +236,7 @@ def main():
 
                 image_name = os.path.splitext(os.path.basename(img_path))[0]
                 # 在保存路径中包含层信息
-                save_path = os.path.join(args.output_dir,f"{image_name}", f"layer_{layer_idx}")
+                save_path = os.path.join(args.output_dir, f"{image_name}", f"layer_{layer_idx}")
 
                 image = Image.open(img_path).convert("RGB")
                 width, height = align_size_to_patch(image, patch_size)
