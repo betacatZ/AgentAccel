@@ -98,7 +98,6 @@ def main():
     )
     parser.add_argument("--output_dir", type=str, default="visualization_output", help="Output directory")
     args = parser.parse_args()
-
     os.makedirs(args.output_dir, exist_ok=True)
 
     print(f"Loading model from {args.model_path}")
@@ -215,39 +214,44 @@ def main():
         # Inner tuple: layers
         # Shape of each attention tensor: (batch_size, num_heads, seq_len, seq_len)
 
-        # We extract attention from the last layer of the first generated token step
+        # We extract attention from all layers of the first generated token step
         if getattr(output, "attentions"):
-            first_token_attentions = output.attentions[0]  # type: ignore
-            last_layer_attention = first_token_attentions[-1]  # [batch, heads, q_len, k_len]
+            token_attentions = output.attentions[0]  # type: ignore
+            total_layers = len(token_attentions)
 
-            # Average over heads
-            avg_attention = last_layer_attention.mean(dim=1).squeeze(0).float().cpu().numpy()  # [q_len, k_len]
-            text_range, vision_range = find_range(inputs["input_ids"], processor.tokenizer)
+            # 遍历所有层
+            for layer_idx in range(total_layers):
+                # 获取当前层的注意力
+                layer_attention = token_attentions[layer_idx]  # [batch, heads, q_len, k_len]
 
-            if text_range is None or vision_range is None:
-                print(f"Skipping index {idx}: Could not locate text or vision range.")
-                continue
+                # Average over heads
+                avg_attention = layer_attention.mean(dim=1).squeeze(0).float().cpu().numpy()  # [q_len, k_len]
+                text_range, vision_range = find_range(inputs["input_ids"], processor.tokenizer)
 
-            avg_attention = avg_attention[text_range[0] : text_range[1], vision_range[0] : vision_range[1]]
+                if text_range is None or vision_range is None:
+                    print(f"Skipping index {idx}, layer {layer_idx}: Could not locate text or vision range.")
+                    continue
 
-            image_name = os.path.splitext(os.path.basename(img_path))[0]
-            save_name = f"{idx:03d}_{image_name}_attn.png"
-            save_path = os.path.join(args.output_dir, save_name)
+                avg_attention = avg_attention[text_range[0] : text_range[1], vision_range[0] : vision_range[1]]
 
-            image = Image.open(img_path).convert("RGB")
-            width, height = align_size_to_patch(image, patch_size)
-            image = image.resize((width, height))
-            instruction_idx = inputs["input_ids"][0].tolist()[text_range[0] : text_range[1]]
-            plot_attention_map(
-                processor.tokenizer,
-                instruction_idx,
-                avg_attention,
-                image,
-                patch_size,
-                save_path,
-                title=f"Avg Attention Layer -1\n{instruction[:30]}...",
-            )
-            print(f"Saved attention map to {save_path}")
+                image_name = os.path.splitext(os.path.basename(img_path))[0]
+                # 在保存路径中包含层信息
+                save_path = os.path.join(args.output_dir,f"{image_name}", f"layer_{layer_idx}")
+
+                image = Image.open(img_path).convert("RGB")
+                width, height = align_size_to_patch(image, patch_size)
+                image = image.resize((width, height))
+                instruction_idx = inputs["input_ids"][0].tolist()[text_range[0] : text_range[1]]
+                plot_attention_map(
+                    processor.tokenizer,
+                    instruction_idx,
+                    avg_attention,
+                    image,
+                    patch_size,
+                    save_path,
+                    title=f"Avg Attention Layer {layer_idx}/{total_layers - 1}\n{instruction[:30]}...",
+                )
+                print(f"Saved attention map for layer {layer_idx} to {save_path}")
 
 
 if __name__ == "__main__":
