@@ -11,11 +11,12 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
+from util import align_size_to_patch
 
 
 def draw_original_image(
     image: Image.Image,
-    ax: Optional[plt.Axes] = None,
+    ax,
     save_path: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy()
@@ -32,7 +33,7 @@ def draw_bbox_and_pred(
     image: Image.Image,
     bbox: List[float],
     pred: List[float],
-    ax: Optional[plt.Axes] = None,
+    ax,
     save_path: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy()
@@ -64,7 +65,7 @@ def draw_selected_tokens(
     image: Image.Image,
     selected_indices: List[int],
     patch_size: int,
-    ax: Optional[plt.Axes] = None,
+    ax,
     save_path: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy().convert("RGBA")
@@ -100,7 +101,7 @@ def draw_token_heatmap(
     image: Image.Image,
     token_scores: torch.Tensor,
     patch_size: int,
-    ax: plt.Axes,
+    ax,
     save_path: Optional[str] = None,
 ):
     """
@@ -157,7 +158,7 @@ def visualize_tokens(
     bbox,
     pred,
     save_path,
-    selected_indices: Optional[List[int]] = None,
+    selected_indices: List[int],
     patch_size: int = 16,
     show: bool = True,
 ):
@@ -227,8 +228,8 @@ def visualize_visionselector_tokens(
     visual_model = tester.model.model.visual
 
     # 获取patch_size
-    patch_size = getattr(visual_model, "patch_size", 16)
-    spatial_merge_size = getattr(visual_model, "spatial_merge_size", 2)
+    patch_size = visual_model.patch_size
+    spatial_merge_size = visual_model.spatial_merge_size
     token_patch_size = patch_size * spatial_merge_size
 
     # 调用模型生成点击坐标（这会触发visual token选择）
@@ -253,7 +254,7 @@ def visualize_visionselector_tokens(
         visualize_tokens(
             image=image,
             token_scores=token_scores,
-            selected_indices=selected_indices if hasattr(visual_model, "last_selected_indices") else None,
+            selected_indices=selected_indices,
             patch_size=token_patch_size,
             save_path=f"{save_path}" if save_path else None,
             show=show,

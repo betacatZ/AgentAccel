@@ -5,18 +5,64 @@ import torch
 import matplotlib.pyplot as plt
 from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
 from PIL import Image
-from util import convert_pil_image_to_base64
+import sys
 
-def plot_attention_map(attention_matrix, tokenizer, image, save_path, title="Attention Map"):
-    plt.figure(figsize=(10, 8))
-    plt.imshow(attention_matrix, cmap="viridis", aspect="auto")
-    plt.colorbar()
-    plt.title(title)
-    plt.xlabel("Key Tokens")
-    plt.ylabel("Query Tokens")
-    plt.tight_layout()
-    plt.savefig(save_path)
-    plt.close()
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from util import align_size_to_patch
+
+
+def plot_attention_map(
+    tokenizer, instruction_idx, attention_matrix, image, patch_size, save_path, title="Attention Map"
+):
+    # 遍历每个文本token
+    for i, token_id in enumerate(instruction_idx):
+        token_str = tokenizer.decode([token_id]).strip()
+        if not token_str or token_str.isspace():
+            continue
+
+        # 获取当前token的attention权重
+        attn = attention_matrix[i]  # Shape: (num_patches,)
+        # 计算patch网格大小
+        num_patches_w = image.width // patch_size
+        num_patches_h = image.height // patch_size
+        # 将attention reshape为图像patch大小
+        attn_reshaped = attn.reshape(num_patches_h, num_patches_w)
+
+        # 创建画布
+        fig, ax = plt.subplots(figsize=(10, 8))
+
+        # 绘制原图
+        ax.imshow(image)
+
+        # 绘制热力图，使用bilinear插值和透明度叠加
+        heatmap = ax.imshow(
+            attn_reshaped,
+            cmap="jet",
+            alpha=0.5,
+            interpolation="bilinear",
+            extent=(0.0, float(image.width), float(image.height), 0.0),  # 匹配图像坐标
+        )
+
+        # 添加colorbar
+        cbar = fig.colorbar(heatmap, ax=ax, fraction=0.046, pad=0.04)
+        cbar.set_label("Attention Weight")
+
+        # 设置标题
+        ax.set_title(f"{title}\nToken: '{token_str}'")
+
+        # 关闭坐标轴
+        ax.axis("off")
+
+        # 调整布局并保存
+        plt.tight_layout()
+
+        # 生成保存路径
+        os.makedirs(save_path, exist_ok=True)
+        token_save_path = os.path.join(save_path, f"{i}_{token_str}.png")
+        plt.savefig(token_save_path, bbox_inches="tight", dpi=300)
+        plt.close()
+
+        print(f"  保存注意力图: {token_save_path}")
 
 
 def find_range(input_ids, tokenizer):
@@ -63,7 +109,7 @@ def main():
         attn_implementation="eager",
     )
     processor = AutoProcessor.from_pretrained(args.model_path)
-
+    patch_size = model.visual.patch_size * model.visual.spatial_merge_size
     print(f"Loading data from {args.json_path}")
     with open(args.json_path, "r", encoding="utf-8") as f:
         data_list = json.load(f)
@@ -170,8 +216,8 @@ def main():
         # Shape of each attention tensor: (batch_size, num_heads, seq_len, seq_len)
 
         # We extract attention from the last layer of the first generated token step
-        if output.attentions:
-            first_token_attentions = output.attentions[0]
+        if getattr(output, "attentions"):
+            first_token_attentions = output.attentions[0]  # type: ignore
             last_layer_attention = first_token_attentions[-1]  # [batch, heads, q_len, k_len]
 
             # Average over heads
@@ -189,10 +235,15 @@ def main():
             save_path = os.path.join(args.output_dir, save_name)
 
             image = Image.open(img_path).convert("RGB")
+            width, height = align_size_to_patch(image, patch_size)
+            image = image.resize((width, height))
+            instruction_idx = inputs["input_ids"][0].tolist()[text_range[0] : text_range[1]]
             plot_attention_map(
-                avg_attention,
                 processor.tokenizer,
-                img_path,
+                instruction_idx,
+                avg_attention,
+                image,
+                patch_size,
                 save_path,
                 title=f"Avg Attention Layer -1\n{instruction[:30]}...",
             )
