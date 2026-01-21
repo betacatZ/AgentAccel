@@ -96,7 +96,7 @@ def main():
     parser.add_argument(
         "--model_path", type=str, default="/data8/zhangdeming/models/Qwen/Qwen3-VL-8B-Instruct", help="Path to model"
     )
-    parser.add_argument("--output_dir", type=str, default="./output/visualization_output", help="Output directory")
+    parser.add_argument("--output_dir", type=str, default="./output/attn_output", help="Output directory")
     args = parser.parse_args()
     os.makedirs(args.output_dir, exist_ok=True)
 
