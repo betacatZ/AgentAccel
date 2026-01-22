@@ -63,7 +63,9 @@ def select_attn_head_by_sum(self_attn_weights, t_token_idx, v_token_start, text_
 
 if __name__ == "__main__":
     self_attn_weights, v_token_start, v_token_num, text_token_start = torch.rand(1, 16, 1084, 1084), 36, 576, 700
+    t_token_idx = torch.tensor([0, 0, 0], [1, 2, 3])
+    layer_idx = 2
     indices, s_flag, relation_vis_text = attn_postprocess_topk(
-        self_attn_weights, v_token_start, v_token_num, text_token_start, [1080, 1081, 1082], 2
+        self_attn_weights, v_token_start, v_token_num, text_token_start, t_token_idx, layer_idx
     )
     print(indices, s_flag, relation_vis_text)
