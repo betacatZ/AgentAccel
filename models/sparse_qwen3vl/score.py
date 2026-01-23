@@ -43,7 +43,8 @@ def attn_postprocess_topk(self_attn_weights, text_range, vision_range, t_token_i
             relation_vis_text, min(sparse_token_list[layer_dict[layer_idx]], v_token_num - 1), dim=1
         )
         indices = indices + vision_range[0]
-        indices = indices[0].tolist().sort()
+        indices = indices[0].tolist()
+        indices.sort()
         # mask[0][indices] = 1
     else:
         # mask = torch.ones_like(relation_vis_text, dtype=bool)
