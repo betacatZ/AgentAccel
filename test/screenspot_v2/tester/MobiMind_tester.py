@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 import torch
 from transformers import AutoProcessor, AutoTokenizer, Qwen3VLForConditionalGeneration
 from .base_tester import BaseTester
-from ..util import convert_pil_image_to_base64, robust_json_loads
+from util import convert_pil_image_to_base64, robust_json_loads
 
 
 def parse_json_response(response_str: str, is_guided_decoding: bool = True) -> dict:

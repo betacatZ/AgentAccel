@@ -7,7 +7,7 @@ from transformers import AutoTokenizer, AutoProcessor, Qwen3VLForConditionalGene
 from transformers.generation.configuration_utils import GenerationConfig
 
 from .base_tester import BaseTester
-from ..util import convert_pil_image_to_base64
+from util import convert_pil_image_to_base64
 
 
 class Qwen3VLTester(BaseTester):
