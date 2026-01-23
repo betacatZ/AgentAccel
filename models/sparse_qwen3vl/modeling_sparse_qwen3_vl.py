@@ -307,7 +307,14 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 indices, s_flag, relation_vis_text = attn_postprocess_topk(
                     attn_weights, text_range, vision_range, t_token_idx, layer_idx
                 )
-                layer_outputs = layer_outputs[:, indices, :]
+                # 保留视觉 token 的同时，也保留文本中非视觉部分的 token
+                # 先取视觉范围外的文本 token
+                prefix_tokens = layer_outputs[:, :vision_range[0], :]
+                suffix_tokens = layer_outputs[:, vision_range[1]:, :]
+                # 再按 indices 筛选视觉范围内的 token
+                selected_tokens = layer_outputs[:, indices, :]
+                # 拼接成新的序列
+                layer_outputs = torch.cat([prefix_tokens, selected_tokens, suffix_tokens], dim=1)
             hidden_states = layer_outputs
 
             # add visual features to the hidden states of first several layers

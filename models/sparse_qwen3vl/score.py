@@ -33,18 +33,21 @@ def attn_postprocess_topk(self_attn_weights, text_range, vision_range, t_token_i
 
     relation_vis_text = relation_vis_text.mean(1)  # B, L[vision]
 
-    relation_vis = relation_vis_text
     s_flag = True  # s_flag controls whether token merge is needed.
 
     sparse_token_list = sparse_token_dict[RETAIN_TOKN]
     v_token_num = vision_range[1] - vision_range[0]
     if v_token_num != 0:
         # mask = torch.zeros_like(relation_vis, dtype=bool)
-        _, indices = torch.topk(relation_vis, min(sparse_token_list[layer_dict[layer_idx]], v_token_num - 1), dim=1)
+        _, indices = torch.topk(
+            relation_vis_text, min(sparse_token_list[layer_dict[layer_idx]], v_token_num - 1), dim=1
+        )
+        indices = indices + vision_range[0]
         # mask[0][indices] = 1
     else:
         # mask = torch.ones_like(relation_vis_text, dtype=bool)
         s_flag = False
+
     return indices, s_flag, relation_vis_text
 
 
