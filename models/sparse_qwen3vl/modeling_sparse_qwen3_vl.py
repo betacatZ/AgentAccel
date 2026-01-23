@@ -40,8 +40,16 @@ from transformers.processing_utils import Unpack
 from transformers.utils import TransformersKwargs, auto_docstring, is_torchdynamo_compiling
 from transformers.utils.deprecation import deprecate_kwarg
 from transformers.utils.generic import check_model_inputs
-from .configuration_qwen3_vl import Qwen3VLConfig, Qwen3VLTextConfig, Qwen3VLVisionConfig
+from models.qwen3vl.configuration_qwen3_vl import Qwen3VLConfig, Qwen3VLTextConfig, Qwen3VLVisionConfig
 from .score import attn_postprocess_topk, select_attn_head_by_sum
+from models.qwen3vl.modeling_qwen3_vl import (
+    Qwen3VLForConditionalGeneration,
+    Qwen3VLModel,
+    Qwen3VLTextModel,
+    Qwen3VLTextDecoderLayer,
+    Qwen3VLPreTrainedModel,
+    Qwen3VLModelOutputWithPast,
+)
 
 
 class Qwen3VLVisionMLP(nn.Module):
@@ -474,9 +482,9 @@ class Qwen3VLTextMLP(nn.Module):
         return down_proj
 
 
-class Qwen3VLTextDecoderLayer_Sparse(GradientCheckpointingLayer):
+class Qwen3VLTextDecoderLayer_Sparse(Qwen3VLTextDecoderLayer):
     def __init__(self, config: Qwen3VLTextConfig, layer_idx: int):
-        super().__init__()
+        super().__init__(config, layer_idx)
         self.hidden_size = config.hidden_size
 
         self.self_attn = Qwen3VLTextAttention_Sparse(config=config, layer_idx=layer_idx)
@@ -519,48 +527,6 @@ class Qwen3VLTextDecoderLayer_Sparse(GradientCheckpointingLayer):
         hidden_states = self.mlp(hidden_states)
         hidden_states = residual + hidden_states
         return hidden_states, attn_weights
-
-
-@dataclass
-@auto_docstring(
-    custom_intro="""
-    Base class for Llava outputs, with hidden states and attentions.
-    """
-)
-class Qwen3VLModelOutputWithPast(ModelOutput):
-    r"""
-    past_key_values (`Cache`, *optional*, returned when `use_cache=True` is passed or when `config.use_cache=True`):
-        It is a [`~cache_utils.Cache`] instance. For more details, see our [kv cache guide](https://huggingface.co/docs/transformers/en/kv_cache).
-
-        Contains pre-computed hidden-states (key and values in the self-attention blocks) that can be used (see
-        `past_key_values` input) to speed up sequential decoding.
-    rope_deltas (`torch.LongTensor` of shape `(batch_size, )`, *optional*):
-        The rope index difference between sequence length and multimodal rope.
-    """
-
-    last_hidden_state: Optional[torch.FloatTensor] = None
-    past_key_values: Optional[Cache] = None
-    hidden_states: Optional[tuple[torch.FloatTensor]] = None
-    attentions: Optional[tuple[torch.FloatTensor]] = None
-    rope_deltas: Optional[torch.LongTensor] = None
-
-
-@auto_docstring
-class Qwen3VLPreTrainedModel(PreTrainedModel):
-    config: Qwen3VLConfig
-    base_model_prefix = "model"
-    supports_gradient_checkpointing = True
-    _no_split_modules = ["Qwen3VLTextDecoderLayer", "Qwen3VLVisionBlock"]
-    _skip_keys_device_placement = "past_key_values"
-    _supports_flash_attn = True
-    _supports_sdpa = True
-
-    _can_compile_fullgraph = True
-    _supports_attention_backend = True
-    _can_record_outputs = {
-        "hidden_states": Qwen3VLTextDecoderLayer_Sparse,
-        "attentions": Qwen3VLTextAttention_Sparse,
-    }
 
 
 class Qwen3VLVisionModel(Qwen3VLPreTrainedModel):
@@ -755,13 +721,7 @@ class Qwen3VLVisionModel(Qwen3VLPreTrainedModel):
         return hidden_states, deepstack_feature_lists
 
 
-@auto_docstring(
-    custom_intro=(
-        "Text part of Qwen3VL, "
-        "not a pure text-only model, as DeepStack integrates visual features into the early hidden states."
-    )
-)
-class Qwen3VLTextModel_Sparse(Qwen3VLPreTrainedModel):
+class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
     config: Qwen3VLTextConfig
     _no_split_modules = ["Qwen3VLTextDecoderLayer"]
 
@@ -783,7 +743,6 @@ class Qwen3VLTextModel_Sparse(Qwen3VLPreTrainedModel):
         self.post_init()
 
     @check_model_inputs()
-    @auto_docstring
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
@@ -901,8 +860,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLPreTrainedModel):
         return hidden_states
 
 
-@auto_docstring
-class Qwen3VLModel_Sparse(Qwen3VLPreTrainedModel):
+class Qwen3VLModel_Sparse(Qwen3VLModel):
     base_model_prefix = ""
     _checkpoint_conversion_mapping = {}
     # Reference: fix gemma3 grad acc #37208
@@ -1288,7 +1246,7 @@ class Qwen3VLCausalLMOutputWithPast(ModelOutput):
     rope_deltas: Optional[torch.LongTensor] = None
 
 
-class Qwen3VLForConditionalGeneration_Sparse(Qwen3VLPreTrainedModel, GenerationMixin):
+class Qwen3VLForConditionalGeneration_Sparse(Qwen3VLForConditionalGeneration):
     _checkpoint_conversion_mapping = {}
     _tied_weights_keys = ["lm_head.weight"]
     # Reference: fix gemma3 grad acc #37208
