@@ -21,18 +21,15 @@ sparse_token_dict = {
 }
 
 
-def attn_postprocess_topk(self_attn_weights, v_token_start, v_token_num, text_token_start, t_token_idx, layer_idx):
+def attn_postprocess_topk(self_attn_weights, text_range, vision_range, t_token_idx, layer_idx):
     """
     self_attn_weights: [B, H, L, L]
-    t_token_idx: 选择的text token索引[2,N]
+    t_token_idx: 选择的text token索引[N]
 
     """
     self_attn_weights = self_attn_weights.mean(1)  # B, L[Q], L[K]
 
-    t_token_idx = t_token_idx[1] + text_token_start
-    relation_vis_text = self_attn_weights[
-        :, t_token_idx, v_token_start : v_token_start + v_token_num
-    ]  # B, L[text], L[vision]
+    relation_vis_text = self_attn_weights[:, t_token_idx, vision_range[0] : vision_range[1]]  # B, L[text], L[vision]
 
     relation_vis_text = relation_vis_text.mean(1)  # B, L[vision]
 
@@ -40,7 +37,7 @@ def attn_postprocess_topk(self_attn_weights, v_token_start, v_token_num, text_to
     s_flag = True  # s_flag controls whether token merge is needed.
 
     sparse_token_list = sparse_token_dict[RETAIN_TOKN]
-
+    v_token_num = vision_range[1] - vision_range[0]
     if v_token_num != 0:
         # mask = torch.zeros_like(relation_vis, dtype=bool)
         _, indices = torch.topk(relation_vis, min(sparse_token_list[layer_dict[layer_idx]], v_token_num - 1), dim=1)
@@ -62,10 +59,10 @@ def select_attn_head_by_sum(self_attn_weights, t_token_idx, v_token_start, text_
 
 
 if __name__ == "__main__":
-    self_attn_weights, v_token_start, v_token_num, text_token_start = torch.rand(1, 16, 1084, 1084), 36, 576, 700
-    t_token_idx = torch.tensor([0, 0, 0], [1, 2, 3])
+    self_attn_weights, vision_range, text_range = torch.rand(1, 16, 1084, 1084), (100, 700), (700, 800)
+    t_token_idx = torch.tensor([700, 701, 702])
     layer_idx = 2
     indices, s_flag, relation_vis_text = attn_postprocess_topk(
-        self_attn_weights, v_token_start, v_token_num, text_token_start, t_token_idx, layer_idx
+        self_attn_weights, text_range, vision_range, t_token_idx, layer_idx
     )
     print(indices, s_flag, relation_vis_text)
