@@ -6,7 +6,7 @@ V2_0 = VERSION == "2_0"
 
 RETAIN_TOKN = int(os.getenv("RETAIN_TOKN", "192"))
 
-layer_dict = {2: 0, 6: 1, 15: 2}
+layer_dict = {3: 0, 6: 1, 15: 2}
 
 sparse_token_list_192 = [300, 200, 110] if not V2_0 else [300, 200, 118]  # 2*576  4*300 10*200  16*110
 sparse_token_list_128 = [303, 110, 36] if not V2_0 else [238, 108, 60]
