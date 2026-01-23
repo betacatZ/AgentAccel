@@ -9,20 +9,16 @@ from .base_tester import BaseTester
 from util import convert_pil_image_to_base64, robust_json_loads
 
 
-def parse_json_response(response_str: str, is_guided_decoding: bool = True) -> dict:
+def parse_json_response(response_str: str) -> dict:
     """
-    解析 JSON 响应，支持 guided decoding 和普通模式
+    解析 JSON 响应
 
     Args:
         response_str: 模型返回的响应字符串
-        is_guided_decoding: 是否启用了 guided decoding（默认 True）
 
     Returns:
         解析后的 JSON 对象
 
-    说明：
-        - 当启用 guided decoding 时，模型输出应该是纯 JSON 格式
-        - 当禁用 guided decoding 时，可能包含 markdown code block 或其他文本
     """
     if not response_str or not isinstance(response_str, str):
         logging.error(f"Invalid response: {response_str}")
