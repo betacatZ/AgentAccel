@@ -383,7 +383,7 @@ def apply_rotary_pos_emb(q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
     return q_embed, k_embed
 
 
-class Qwen3VLTextAttention(nn.Module):
+class Qwen3VLTextAttention_Sparse(nn.Module):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
 
     def __init__(self, config: Qwen3VLTextConfig, layer_idx: int):
@@ -474,12 +474,12 @@ class Qwen3VLTextMLP(nn.Module):
         return down_proj
 
 
-class Qwen3VLTextDecoderLayer(GradientCheckpointingLayer):
+class Qwen3VLTextDecoderLayer_Sparse(GradientCheckpointingLayer):
     def __init__(self, config: Qwen3VLTextConfig, layer_idx: int):
         super().__init__()
         self.hidden_size = config.hidden_size
 
-        self.self_attn = Qwen3VLTextAttention(config=config, layer_idx=layer_idx)
+        self.self_attn = Qwen3VLTextAttention_Sparse(config=config, layer_idx=layer_idx)
 
         self.mlp = Qwen3VLTextMLP(config)
         self.input_layernorm = Qwen3VLTextRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
@@ -558,8 +558,8 @@ class Qwen3VLPreTrainedModel(PreTrainedModel):
     _can_compile_fullgraph = True
     _supports_attention_backend = True
     _can_record_outputs = {
-        "hidden_states": Qwen3VLTextDecoderLayer,
-        "attentions": Qwen3VLTextAttention,
+        "hidden_states": Qwen3VLTextDecoderLayer_Sparse,
+        "attentions": Qwen3VLTextAttention_Sparse,
     }
 
 
@@ -761,7 +761,7 @@ class Qwen3VLVisionModel(Qwen3VLPreTrainedModel):
         "not a pure text-only model, as DeepStack integrates visual features into the early hidden states."
     )
 )
-class Qwen3VLTextModel(Qwen3VLPreTrainedModel):
+class Qwen3VLTextModel_Sparse(Qwen3VLPreTrainedModel):
     config: Qwen3VLTextConfig
     _no_split_modules = ["Qwen3VLTextDecoderLayer"]
 
@@ -773,7 +773,7 @@ class Qwen3VLTextModel(Qwen3VLPreTrainedModel):
         self.pruning_loc = pruning_loc
         self.embed_tokens = nn.Embedding(config.vocab_size, config.hidden_size, self.padding_idx)
         self.layers = nn.ModuleList(
-            [Qwen3VLTextDecoderLayer(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
+            [Qwen3VLTextDecoderLayer_Sparse(config, layer_idx) for layer_idx in range(config.num_hidden_layers)]
         )
         self.norm = Qwen3VLTextRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.rotary_emb = Qwen3VLTextRotaryEmbedding(config=config)
@@ -902,7 +902,7 @@ class Qwen3VLTextModel(Qwen3VLPreTrainedModel):
 
 
 @auto_docstring
-class Qwen3VLModel(Qwen3VLPreTrainedModel):
+class Qwen3VLModel_Sparse(Qwen3VLPreTrainedModel):
     base_model_prefix = ""
     _checkpoint_conversion_mapping = {}
     # Reference: fix gemma3 grad acc #37208
@@ -913,7 +913,7 @@ class Qwen3VLModel(Qwen3VLPreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
         self.visual = Qwen3VLVisionModel._from_config(config.vision_config)
-        self.language_model = Qwen3VLTextModel._from_config(config.text_config)
+        self.language_model = Qwen3VLTextModel_Sparse._from_config(config.text_config)
         self.rope_deltas = None  # cache rope_deltas here
 
         # Initialize weights and apply final processing
@@ -1288,7 +1288,7 @@ class Qwen3VLCausalLMOutputWithPast(ModelOutput):
     rope_deltas: Optional[torch.LongTensor] = None
 
 
-class Qwen3VLForConditionalGeneration(Qwen3VLPreTrainedModel, GenerationMixin):
+class Qwen3VLForConditionalGeneration_Sparse(Qwen3VLPreTrainedModel, GenerationMixin):
     _checkpoint_conversion_mapping = {}
     _tied_weights_keys = ["lm_head.weight"]
     # Reference: fix gemma3 grad acc #37208
@@ -1297,7 +1297,7 @@ class Qwen3VLForConditionalGeneration(Qwen3VLPreTrainedModel, GenerationMixin):
 
     def __init__(self, config):
         super().__init__(config)
-        self.model = Qwen3VLModel(config)
+        self.model = Qwen3VLModel_Sparse(config)
         self.lm_head = nn.Linear(config.text_config.hidden_size, config.text_config.vocab_size, bias=False)
 
         self.post_init()
@@ -1578,8 +1578,8 @@ class Qwen3VLForConditionalGeneration(Qwen3VLPreTrainedModel, GenerationMixin):
 
 __all__ = [
     "Qwen3VLVisionModel",
-    "Qwen3VLForConditionalGeneration",
-    "Qwen3VLModel",
+    "Qwen3VLForConditionalGeneration_Sparse",
+    "Qwen3VLModel_Sparse",
     "Qwen3VLPreTrainedModel",
-    "Qwen3VLTextModel",
+    "Qwen3VLTextModel_Sparse",
 ]
