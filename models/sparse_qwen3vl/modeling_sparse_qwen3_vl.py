@@ -200,7 +200,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
     config: Qwen3VLTextConfig
     _no_split_modules = ["Qwen3VLTextDecoderLayer"]
 
-    def __init__(self, config: Qwen3VLTextConfig, pruning_loc=[2, 6, 15]):
+    def __init__(self, config: Qwen3VLTextConfig, pruning_loc=[3, 6, 15]):
         super().__init__(config)
         self.padding_idx = config.pad_token_id
         self.vocab_size = config.vocab_size
