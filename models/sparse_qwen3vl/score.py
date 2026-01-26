@@ -39,7 +39,7 @@ def attn_postprocess_topk(self_attn_weights, text_range, vision_range, t_token_i
     v_token_num = vision_range[1] - vision_range[0]
 
     reduce_token_num = v_token_num - sparse_token_list[layer_dict[layer_idx]]
-    new_vision_range = (vision_range[0], vision_range[0] + reduce_token_num)
+    new_vision_range = (vision_range[0], vision_range[0] + sparse_token_list[layer_dict[layer_idx]])
     new_text_range = (text_range[0] - reduce_token_num, text_range[1] - reduce_token_num)
     if v_token_num != 0:
         # mask = torch.zeros_like(relation_vis, dtype=bool)
