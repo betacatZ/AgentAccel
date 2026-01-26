@@ -4,9 +4,12 @@ import os
 VERSION = os.getenv("USE_VERSION", "1_0")
 V2_0 = VERSION == "2_0"
 
-RETAIN_TOKN = int(os.getenv("RETAIN_TOKN", "192"))
+RETAIN_TOKN = int(os.getenv("RETAIN_TOKN", "0.58"))
 
-layer_dict = {3: 0, 6: 1, 15: 2}
+layer_dict = {5: 0, 10: 1, 20: 2}
+
+sparse_token_list_46 = [0.7, 0.5, 0.3]  # (4*1+3*0.7+9*0.5+20*0.3)/36=0.46
+sparse_token_list_58 = [0.8, 0.5, 0.4]  # (6*1+5*0.8+10*0.5+15*0.4)/36=0.58
 
 sparse_token_list_192 = [300, 200, 110] if not V2_0 else [300, 200, 118]  # 2*576  4*300 10*200  16*110
 sparse_token_list_128 = [303, 110, 36] if not V2_0 else [238, 108, 60]
@@ -18,6 +21,8 @@ sparse_token_dict = {
     128: sparse_token_list_128,
     96: sparse_token_list_96,
     64: sparse_token_list_64,
+    0.46: sparse_token_list_46,
+    0.58: sparse_token_list_58,
 }
 
 
@@ -37,15 +42,18 @@ def attn_postprocess_topk(self_attn_weights, text_range, vision_range, t_token_i
 
     sparse_token_list = sparse_token_dict[RETAIN_TOKN]
     v_token_num = vision_range[1] - vision_range[0]
-
-    reduce_token_num = v_token_num - sparse_token_list[layer_dict[layer_idx]]
-    new_vision_range = (vision_range[0], vision_range[0] + sparse_token_list[layer_dict[layer_idx]])
+    token_num = int(sparse_token_list[layer_dict[layer_idx]] * v_token_num)
+    reduce_token_num = v_token_num - token_num
+    # reduce_token_num = v_token_num - sparse_token_list[layer_dict[layer_idx]]
+    # new_vision_range = (vision_range[0], vision_range[0] + sparse_token_list[layer_dict[layer_idx]])
+    new_vision_range = (vision_range[0], vision_range[0] + token_num)
     new_text_range = (text_range[0] - reduce_token_num, text_range[1] - reduce_token_num)
     if v_token_num != 0:
         # mask = torch.zeros_like(relation_vis, dtype=bool)
-        _, indices = torch.topk(
-            relation_vis_text, min(sparse_token_list[layer_dict[layer_idx]], v_token_num - 1), dim=1
-        )
+        # _, indices = torch.topk(
+        #     relation_vis_text, min(sparse_token_list[layer_dict[layer_idx]], v_token_num - 1), dim=1
+        # )
+        _, indices = torch.topk(relation_vis_text, min(token_num, v_token_num - 1), dim=1)
         indices = indices + vision_range[0]
         indices = indices[0].tolist()
         indices.sort()
