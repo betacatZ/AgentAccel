@@ -309,12 +309,34 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 )
                 # 保留视觉 token 的同时，也保留文本中非视觉部分的 token
                 # 先取视觉范围外的文本 token
-                prefix_tokens = layer_outputs[:, : vision_range[0], :]
-                suffix_tokens = layer_outputs[:, vision_range[1] :, :]
-                # 再按 indices 筛选视觉范围内的 token
-                selected_tokens = layer_outputs[:, indices, :]
+                # prefix_tokens = layer_outputs[:, : vision_range[0], :]
+                # suffix_tokens = layer_outputs[:, vision_range[1] :, :]
+                # # 再按 indices 筛选视觉范围内的 token
+                # selected_tokens = layer_outputs[:, indices, :]
+                selected_idx = torch.cat(
+                    [
+                        torch.arange(0, vision_range[0]),
+                        torch.as_tensor(indices),
+                        torch.arange(vision_range[1], layer_outputs.shape[1]),
+                    ],
+                    dim=0,
+                )
                 # 拼接成新的序列
-                layer_outputs = torch.cat([prefix_tokens, selected_tokens, suffix_tokens], dim=1)
+                layer_outputs = layer_outputs[:, selected_idx, :]
+                attention_mask = attention_mask[:, :, selected_idx, selected_idx]
+                position_embeddings = (
+                    position_embeddings[0][:, selected_idx, :],
+                    position_embeddings[1][:, selected_idx, :],
+                )
+                text_position_ids = torch.cat(
+                    [
+                        text_position_ids[:, : vision_range[0]],
+                        text_position_ids[:, indices],
+                        text_position_ids[:, vision_range[1] :],
+                    ],
+                    dim=1,
+                )
+
             hidden_states = layer_outputs
 
             # add visual features to the hidden states of first several layers
