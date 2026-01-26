@@ -80,3 +80,28 @@ def align_size_to_patch(image: Image.Image, patch_size: int = 16) -> Tuple[int, 
     if new_width == width and new_height == height:
         return width, height
     return new_width, new_height
+
+
+def find_range(input_ids, tokenizer):
+    im_start_id = tokenizer.convert_tokens_to_ids("<|im_start|>")
+    im_end_id = tokenizer.convert_tokens_to_ids("<|im_end|>")
+    vision_start_id = tokenizer.convert_tokens_to_ids("<|vision_start|>")
+    vision_end_id = tokenizer.convert_tokens_to_ids("<|vision_end|>")
+    input_ids_list = input_ids[0].tolist()
+    start_indices = [i for i, x in enumerate(input_ids_list) if x == im_start_id]
+    text_range, vision_range = None, None
+    for start_idx in start_indices:
+        chk_end = min(start_idx + 10, len(input_ids_list))
+        role_tokens = input_ids_list[start_idx + 1 : chk_end]
+        role_str = tokenizer.decode(role_tokens).strip().lower()
+        if role_str.startswith("user"):
+            try:
+                start_vision_idx = input_ids_list.index(vision_start_id, start_idx)
+                vision_end_idx = input_ids_list.index(vision_end_id, start_vision_idx)
+                vision_range = (start_vision_idx + 1, vision_end_idx)
+                end_idx = input_ids_list.index(im_end_id, vision_end_idx)
+                text_range = (vision_end_idx + 1, end_idx)
+                return text_range, vision_range
+            except ValueError:
+                continue
+    return text_range, vision_range

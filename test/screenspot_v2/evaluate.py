@@ -116,7 +116,6 @@ def evaluate(tester, dataset_path: str, task: str) -> Tuple[Dict[str, float], Li
     return tasks_result, results
 
 
-
 def run(tester, dataset_path: str, task: str, output: str):
     tasks = ["mobile", "desktop", "web"] if task == "all" else [task]
     for t in tasks:
@@ -154,6 +153,9 @@ def main():
         from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
 
         tester = Qwen3VLVisionSelectorTester(cfg["model_path"], budgets=cfg["budgets"])
+    elif cfg["model"].lower() == "qwen3vl_sparse":
+        from tester.qwen3vl_sparse_tester import Qwen3VLSparseTester
+        tester = Qwen3VLSparseTester(cfg["model_path"], budgets=cfg["budgets"])
     else:
         raise ValueError(f"Unknown model: {cfg['model']}")
     exp_name = cfg.get("exp_name", "default_exp")
@@ -162,7 +164,6 @@ def main():
 
     with open(os.path.join(output_path, "config.yaml"), "w") as f:
         yaml.dump(cfg, f, allow_unicode=True, sort_keys=False)
-
 
 
 if __name__ == "__main__":
