@@ -328,14 +328,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                     position_embeddings[0][:, selected_idx, :],
                     position_embeddings[1][:, selected_idx, :],
                 )
-                text_position_ids = torch.cat(
-                    [
-                        text_position_ids[:, : vision_range[0]],
-                        text_position_ids[:, indices],
-                        text_position_ids[:, vision_range[1] :],
-                    ],
-                    dim=1,
-                )
+                text_position_ids = text_position_ids[:, selected_idx]
 
             hidden_states = layer_outputs
 
