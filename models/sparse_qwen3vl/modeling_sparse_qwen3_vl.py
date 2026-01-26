@@ -304,15 +304,9 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 t_token_idx = torch.where(m_v_t > m_v_t.mean())
                 t_token_idx = t_token_idx[1]
                 t_token_idx = t_token_idx + text_range[0]
-                indices, s_flag, relation_vis_text = attn_postprocess_topk(
+                indices, s_flag, relation_vis_text, new_vision_range, new_text_range = attn_postprocess_topk(
                     attn_weights, text_range, vision_range, t_token_idx, layer_idx
                 )
-                # 保留视觉 token 的同时，也保留文本中非视觉部分的 token
-                # 先取视觉范围外的文本 token
-                # prefix_tokens = layer_outputs[:, : vision_range[0], :]
-                # suffix_tokens = layer_outputs[:, vision_range[1] :, :]
-                # # 再按 indices 筛选视觉范围内的 token
-                # selected_tokens = layer_outputs[:, indices, :]
                 selected_idx = torch.cat(
                     [
                         torch.arange(0, vision_range[0]),
@@ -323,13 +317,16 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 )
                 # 拼接成新的序列
                 layer_outputs = layer_outputs[:, selected_idx, :]
-                attention_mask = attention_mask[:, :, selected_idx, selected_idx]
+                attention_mask = attention_mask[:, :, selected_idx, :][:, :, :, selected_idx]
                 position_embeddings = (
                     position_embeddings[0][:, selected_idx, :],
                     position_embeddings[1][:, selected_idx, :],
                 )
                 text_position_ids = text_position_ids[:, selected_idx]
-
+                cache_position = cache_position[selected_idx]
+                vision_range = new_vision_range
+                text_range = new_text_range
+                
             hidden_states = layer_outputs
 
             # add visual features to the hidden states of first several layers
