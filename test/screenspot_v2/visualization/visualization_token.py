@@ -283,6 +283,7 @@ def visualize_sparse_tokens(
         sample: 包含bbox和pred的样本字典（可选）
     """
     # 获取模型的visual模块
+    os.makedirs(save_path, exist_ok=True)
     img_path = sample["img_path"]
     image = Image.open(img_path).convert("RGB")
     instruction = sample["text"]

@@ -308,7 +308,6 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 indices, s_flag, relation_vis_text, new_vision_range, new_text_range = attn_postprocess_topk(
                     attn_weights, text_range, vision_range, t_token_idx, layer_idx
                 )
-                self.selected_idx_list.append(indices)
                 selected_idx = torch.cat(
                     [
                         torch.arange(0, vision_range[0]),
