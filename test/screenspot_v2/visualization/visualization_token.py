@@ -11,12 +11,13 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
+from tester.qwen3vl_sparse_tester import Qwen3VLSparseTester
 from util import align_size_to_patch
 
 
 def draw_original_image(
     image: Image.Image,
-    ax,
+    ax: Optional[plt.Axes] = None,,
     save_path: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy()
@@ -32,8 +33,8 @@ def draw_original_image(
 def draw_bbox_and_pred(
     image: Image.Image,
     bbox: List[float],
-    pred: List[float],
-    ax,
+    pred: List[float] | tuple[float, float],
+    ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy()
@@ -65,7 +66,7 @@ def draw_selected_tokens(
     image: Image.Image,
     selected_indices: List[int],
     patch_size: int,
-    ax,
+    ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy().convert("RGBA")
@@ -101,7 +102,7 @@ def draw_token_heatmap(
     image: Image.Image,
     token_scores: torch.Tensor,
     patch_size: int,
-    ax,
+    ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
 ):
     """
@@ -265,6 +266,63 @@ def visualize_visionselector_tokens(
     return coordinates, response
 
 
+def visualize_sparse_tokens(
+    tester: Qwen3VLSparseTester,
+    save_path: str,
+    sample: dict,
+    show: bool = True,
+):
+    """
+    可视化Qwen3VLSparse的visual token选择
+
+    Args:
+        tester: Qwen3VLSparseTester实例
+        save_path: 保存路径（不含扩展名）
+        show: 是否显示可视化结果
+        sample: 包含bbox和pred的样本字典（可选）
+    """
+    # 获取模型的visual模块
+    img_path = sample["img_path"]
+    image = Image.open(img_path).convert("RGB")
+    instruction = sample["text"]
+    text_model = tester.model.model.language_model
+    visual_model = tester.model.model.visual
+    # 获取patch_size
+    patch_size = visual_model.patch_size
+    spatial_merge_size = visual_model.spatial_merge_size
+    token_patch_size = patch_size * spatial_merge_size
+
+    # 调用模型生成点击坐标（这会触发visual token选择）
+    coordinates, response = tester.generate_click_coordinate(instruction, img_path)
+
+    print(f"\n生成的响应: {response}")
+    print(f"点击坐标: {coordinates}")
+
+    # 检查是否有保存的token选择信息
+    if hasattr(text_model, "selected_vision_idx_list"):
+        selected_idx_list = text_model.selected_idx_list
+    draw_bbox_and_pred(
+        image=image,
+        bbox=sample["bbox"],
+        pred=coordinates,
+        save_path=os.path.join(save_path, "bbox_pred.png"),
+    )
+    for layer_idx, selected_vision_idx in selected_idx_list.items():
+        selected_indices = selected_vision_idx.tolist()
+        vision_range = tester.vision_range
+        selected_indices = [
+            i for i in selected_indices
+            if vision_range[0] <= i < vision_range[1]
+        ]
+        print(f"\n选中的token数量: {len(selected_indices)}")
+        draw_selected_tokens(
+            image,
+            selected_indices,
+            token_patch_size,
+            save_path=os.path.join(save_path, f"selected_tokens_{layer_idx}.png"),
+        )
+
+
 def main():
     parser = argparse.ArgumentParser(description="可视化Qwen3VLVisionSelector的visual token")
     parser.add_argument("--model_path", type=str, required=True, help="模型路径")
@@ -302,64 +360,8 @@ def main():
 
     print("\n可视化完成！")
     print("输出文件:")
-    # print(f"- {save_path}_selected_tokens.png: 显示选择的token区域")
     print(f"- {save_path}: 显示token分数热力图")
 
 
 if __name__ == "__main__":
     main()
-    # 示例用法
-    # import sys
-    # from PIL import Image
-    # import torch
-
-    # if len(sys.argv) < 2:
-    #     print("Usage: python draw_token.py <image_path> [selected_indices]")
-    #     sys.exit(1)
-
-    # # 加载图像
-    # image_path = sys.argv[1]
-    # image = Image.open(image_path)
-
-    # # 获取图像的实际大小
-    # original_width, original_height = image.size
-    # print(f"原始图像大小: {original_width}x{original_height}")
-
-    # # 使用默认的patch_size 16
-    # patch_size = 16
-    # # 计算调整后的图像大小（向上取整到patch_size的倍数）
-    # adjusted_width = ((original_width + patch_size - 1) // patch_size) * patch_size
-    # adjusted_height = ((original_height + patch_size - 1) // patch_size) * patch_size
-    # print(f"调整后的图像大小 (patch_size={patch_size}的倍数): {adjusted_width}x{adjusted_height}")
-
-    # # 示例token索引（实际使用时应从模型获取）
-    # if len(sys.argv) > 2:
-    #     selected_indices = list(map(int, sys.argv[2].split(",")))
-    # else:
-    #     # 随机选择一半的token作为示例
-    #     total_tokens = (adjusted_height // patch_size) * (adjusted_width // patch_size)
-    #     num_selected = total_tokens // 2  # 选择一半的token
-    #     selected_indices = np.random.choice(total_tokens, num_selected, replace=False).tolist()
-    #     selected_indices.sort()  # 保持索引顺序
-    #     print(f"随机选择的token数量: {len(selected_indices)} (总token数量: {total_tokens})")
-    #     print(f"选择的token索引: {selected_indices[:10]}...")
-
-    # # 示例token分数（实际使用时应从模型获取）
-    # total_tokens = (adjusted_height // patch_size) * (adjusted_width // patch_size)
-    # token_scores = torch.randn(total_tokens)
-    # token_scores = torch.softmax(token_scores, dim=0)
-
-    # # 可视化token分数热力图
-    # print("\n--- 可视化token分数热力图 ---")
-    # visualize_token_scores(
-    #     image=image,
-    #     token_scores=token_scores,
-    #     selected_indices=selected_indices,
-    #     patch_size=patch_size,
-    #     save_path="token_heatmap.png",
-    # )
-
-    # print("\n可视化完成！")
-    # print("输出文件:")
-    # print("- selected_tokens.png: 显示选择的token区域")
-    # print("- token_heatmap.png: 显示token分数热力图")

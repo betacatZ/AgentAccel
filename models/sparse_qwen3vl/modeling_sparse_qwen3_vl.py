@@ -213,7 +213,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
         self.norm = Qwen3VLTextRMSNorm(config.hidden_size, eps=config.rms_norm_eps)
         self.rotary_emb = Qwen3VLTextRotaryEmbedding(config=config)
         self.gradient_checkpointing = False
-
+        self.selected_idx_list = {}
         # Initialize weights and apply final processing
         self.post_init()
 
@@ -283,7 +283,8 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
 
         # create position embeddings to be shared across the decoder layers
         position_embeddings = self.rotary_emb(hidden_states, position_ids)
-
+        origin_token_idx = torch.arange(hidden_states.shape[1], device=hidden_states.device)
+        self.selected_idx_list[0] = origin_token_idx
         # decoder layers
         # ------------------------------------------- Sparse ----------------------------------------------
         for layer_idx, decoder_layer in enumerate(self.layers):
@@ -307,6 +308,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 indices, s_flag, relation_vis_text, new_vision_range, new_text_range = attn_postprocess_topk(
                     attn_weights, text_range, vision_range, t_token_idx, layer_idx
                 )
+                self.selected_idx_list.append(indices)
                 selected_idx = torch.cat(
                     [
                         torch.arange(0, vision_range[0]),
@@ -315,6 +317,8 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                     ],
                     dim=0,
                 )
+                origin_token_idx = origin_token_idx[selected_idx]
+                self.selected_idx_list[layer_idx + 1] = origin_token_idx
                 # 拼接成新的序列
                 layer_outputs = layer_outputs[:, selected_idx, :]
                 attention_mask = attention_mask[:, :, selected_idx, :][:, :, :, selected_idx]

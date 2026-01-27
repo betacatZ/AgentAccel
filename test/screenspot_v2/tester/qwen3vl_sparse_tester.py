@@ -105,6 +105,7 @@ class Qwen3VLSparseTester(BaseTester):
             messages, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pt"
         ).to(self.model.device)
         text_range, vision_range = find_range(inputs["input_ids"], self.tokenizer)
+        self.text_range, self.vision_range = text_range, vision_range
         generated_ids = self.model.generate(
             **inputs, max_new_tokens=512, text_range=text_range, vision_range=vision_range
         )
@@ -112,11 +113,6 @@ class Qwen3VLSparseTester(BaseTester):
         response = self.processor.batch_decode(
             generated_ids_trimmed, skip_special_tokens=False, clean_up_tokenization_spaces=False
         )[0]
-        # response = self.guide_text + response
-        # cut_index = response.rfind("}")
-        # if cut_index != -1:
-        #     response = response[: cut_index + 1]
-
         coordinates = self._parse_output(response)
 
         return coordinates, response
