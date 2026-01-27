@@ -17,7 +17,7 @@ from util import align_size_to_patch
 
 def draw_original_image(
     image: Image.Image,
-    ax: Optional[plt.Axes] = None,,
+    ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy()
