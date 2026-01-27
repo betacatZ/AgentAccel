@@ -93,11 +93,11 @@ class Qwen3VLSparseTester(BaseTester):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": instruction},
                     {
                         "type": "image",
                         "image": img_path,
                     },
+                    {"type": "text", "text": instruction},
                 ],
             },
         ]

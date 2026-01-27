@@ -97,11 +97,11 @@ class Qwen3VLTester(BaseTester):
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": instruction},
                     {
                         "type": "image_url",
                         "image_url": {"url": "data:image/png;base64," + convert_pil_image_to_base64(image)},
                     },
+                    {"type": "text", "text": instruction},
                 ],
             },
         ]
