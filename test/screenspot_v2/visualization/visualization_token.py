@@ -309,8 +309,8 @@ def visualize_sparse_tokens(
         pred=coordinates,
         save_path=os.path.join(save_path, "bbox_pred.png"),
     )
-    for layer_idx, selected_vision_idx in selected_idx_list.items():
-        selected_indices = selected_vision_idx.tolist()
+    for layer_idx, selected_idx in selected_idx_list.items():
+        selected_indices = selected_idx.tolist()
         vision_range = tester.vision_range
         selected_indices = [i for i in selected_indices if vision_range[0] <= i < vision_range[1]]
         print(f"\n选中的token数量: {len(selected_indices)}")

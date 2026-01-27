@@ -284,7 +284,8 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
         # create position embeddings to be shared across the decoder layers
         position_embeddings = self.rotary_emb(hidden_states, position_ids)
         origin_token_idx = torch.arange(hidden_states.shape[1], device=hidden_states.device)
-        self.selected_idx_list[0] = origin_token_idx
+        if hidden_states.shape[1] != 1:
+            self.selected_idx_list[0] = origin_token_idx
         # decoder layers
         # ------------------------------------------- Sparse ----------------------------------------------
         for layer_idx, decoder_layer in enumerate(self.layers):
