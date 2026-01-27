@@ -301,7 +301,7 @@ def visualize_sparse_tokens(
     print(f"点击坐标: {coordinates}")
 
     # 检查是否有保存的token选择信息
-    if hasattr(text_model, "selected_vision_idx_list"):
+    if hasattr(text_model, "selected_idx_list"):
         selected_idx_list = text_model.selected_idx_list
     draw_bbox_and_pred(
         image=image,
