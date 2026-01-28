@@ -313,6 +313,7 @@ def visualize_sparse_tokens(
         selected_indices = selected_idx.tolist()
         vision_range = tester.vision_range
         selected_indices = [i for i in selected_indices if vision_range[0] <= i < vision_range[1]]
+        selected_indices = [i - vision_range[0] for i in selected_indices]
         print(f"\n选中的token数量: {len(selected_indices)}")
         draw_selected_tokens(
             image,
@@ -442,11 +443,12 @@ def main():
         raise ValueError("模型类型必须包含 'qwen3vl_vision_selector' 或 'qwen3vl_sparse'")
     print("模型加载完成\n")
 
+    output_dir = os.path.join(args.output, os.path.basename(args.model_path))
     # 批量可视化
     batch_visualize(
         tester=tester,
         data_list=data_list,
-        output_dir=args.output,
+        output_dir=output_dir,
         show=args.show,
     )
 
