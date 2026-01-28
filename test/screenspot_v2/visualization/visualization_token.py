@@ -443,12 +443,11 @@ def main():
         raise ValueError("模型类型必须包含 'qwen3vl_vision_selector' 或 'qwen3vl_sparse'")
     print("模型加载完成\n")
 
-    output_dir = os.path.join(args.output, os.path.basename(args.model_path))
     # 批量可视化
     batch_visualize(
         tester=tester,
         data_list=data_list,
-        output_dir=output_dir,
+        output_dir=args.output,
         show=args.show,
     )
 
