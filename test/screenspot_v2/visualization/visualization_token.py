@@ -348,7 +348,7 @@ def batch_visualize(
 
     for idx, item in enumerate(data_list):
         img_path = item.get("img_path")
-        instruction = item.get("text") or item.get("instruction") 
+        instruction = item.get("text")
 
         if not img_path or not instruction:
             print(f"[{idx + 1}/{total}] 跳过：缺少img_path或text")
