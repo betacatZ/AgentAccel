@@ -69,7 +69,6 @@ def draw_selected_tokens(
     patch_size: int,
     ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
-    title: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy().convert("RGBA")
     W, H = img_copy.size
@@ -375,7 +374,10 @@ def concatenate_images_with_titles(
     result = Image.new("RGB", (total_width, total_height), color="white")
     draw = ImageDraw.Draw(result)
 
-    font = ImageFont.load_default()
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
+    except:
+        font = ImageFont.load_default()
 
     for idx, (img, title) in enumerate(zip(images, titles)):
         row = idx // cols
@@ -388,8 +390,9 @@ def concatenate_images_with_titles(
 
         text_bbox = draw.textbbox((0, 0), title, font=font)
         text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
         text_x = x + (img_width - text_width) // 2
-        text_y = y + (title_height - 20) // 2
+        text_y = y + (title_height - text_height) // 2
 
         draw.text((text_x, text_y), title, fill="black", font=font)
 
