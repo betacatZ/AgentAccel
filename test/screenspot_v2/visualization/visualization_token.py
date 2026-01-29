@@ -69,6 +69,7 @@ def draw_selected_tokens(
     patch_size: int,
     ax: Optional[plt.Axes] = None,
     save_path: Optional[str] = None,
+    title: Optional[str] = None,
 ) -> Image.Image:
     img_copy = image.copy().convert("RGBA")
     W, H = img_copy.size
@@ -309,19 +310,96 @@ def visualize_sparse_tokens(
         pred=coordinates,
         save_path=os.path.join(save_path, "bbox_pred.png"),
     )
+
+    layer_images = []
+    layer_titles = []
+
     for layer_idx, selected_idx in selected_idx_list.items():
         selected_indices = selected_idx.tolist()
         vision_range = tester.vision_range
         selected_indices = [i for i in selected_indices if vision_range[0] <= i < vision_range[1]]
         selected_indices = [i - vision_range[0] for i in selected_indices]
         print(f"\n选中的token数量: {len(selected_indices)}")
-        draw_selected_tokens(
+        img = draw_selected_tokens(
             image,
             selected_indices,
             token_patch_size,
             save_path=os.path.join(save_path, f"selected_tokens_{layer_idx}.png"),
         )
+        layer_images.append(img)
+        layer_titles.append(f"Layer {layer_idx}")
+
+    if layer_images:
+        concatenate_images_with_titles(
+            images=layer_images,
+            titles=layer_titles,
+            save_path=os.path.join(save_path, "selected_tokens_all_layers.png"),
+            cols=4,
+        )
+
     return coordinates, response
+
+
+def concatenate_images_with_titles(
+    images: List[Image.Image],
+    titles: List[str],
+    save_path: Optional[str] = None,
+    cols: int = 4,
+    padding: int = 10,
+    title_height: int = 40,
+):
+    """
+    将多张图片横向拼接，每张图片上方添加标题
+
+    Args:
+        images: 图片列表
+        titles: 标题列表
+        save_path: 保存路径
+        cols: 每行显示的图片数量
+        padding: 图片之间的间距
+        title_height: 标题区域的高度
+    """
+    from PIL import ImageDraw, ImageFont
+
+    if len(images) != len(titles):
+        raise ValueError("图片数量和标题数量必须一致")
+
+    if not images:
+        return None
+
+    img_width, img_height = images[0].size
+    total_width = img_width * cols + padding * (cols + 1)
+    num_rows = (len(images) + cols - 1) // cols
+    total_height = (img_height + title_height + padding) * num_rows + padding
+
+    result = Image.new("RGB", (total_width, total_height), color="white")
+    draw = ImageDraw.Draw(result)
+
+    try:
+        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
+    except:
+        font = ImageFont.load_default()
+
+    for idx, (img, title) in enumerate(zip(images, titles)):
+        row = idx // cols
+        col = idx % cols
+
+        x = padding + col * (img_width + padding)
+        y = padding + row * (img_height + title_height + padding)
+
+        result.paste(img, (x, y + title_height))
+
+        text_bbox = draw.textbbox((0, 0), title, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_x = x + (img_width - text_width) // 2
+        text_y = y + (title_height - 20) // 2
+
+        draw.text((text_x, text_y), title, fill="black", font=font)
+
+    if save_path:
+        result.save(save_path)
+
+    return result
 
 
 def batch_visualize(
