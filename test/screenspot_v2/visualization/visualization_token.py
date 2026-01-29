@@ -375,10 +375,7 @@ def concatenate_images_with_titles(
     result = Image.new("RGB", (total_width, total_height), color="white")
     draw = ImageDraw.Draw(result)
 
-    try:
-        font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
-    except:
-        font = ImageFont.load_default()
+    font = ImageFont.load_default()
 
     for idx, (img, title) in enumerate(zip(images, titles)):
         row = idx // cols
