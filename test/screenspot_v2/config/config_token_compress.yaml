@@ -2,7 +2,7 @@
 desc: Evaluate Qwen3VL model on Screenspot v2 dataset
 exp_name: qwen3vl_token_compress_screenspot_v2
 
-model: qwen3vl_vision_selector
+model: qwen3vl_vision_selector # qwen3vl_vision_selector, qwen3vl_sparse
 model_path: /path/to/qwen3vl
 dataset_path: /path/to/dataset
 task: mobile # mobile|desktop|web|all

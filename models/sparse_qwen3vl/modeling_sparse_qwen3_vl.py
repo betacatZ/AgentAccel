@@ -307,7 +307,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 t_token_idx = t_token_idx[1]
                 t_token_idx = t_token_idx + text_range[0]
                 indices, s_flag, relation_vis_text, new_vision_range, new_text_range = attn_postprocess_topk(
-                    attn_weights, text_range, vision_range, t_token_idx, layer_idx
+                    attn_weights, text_range, vision_range, t_token_idx, layer_idx, self.budgets
                 )
                 selected_idx = torch.cat(
                     [
