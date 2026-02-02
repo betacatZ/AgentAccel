@@ -1,8 +1,8 @@
 import torch
 import os
 
-VERSION = os.getenv("USE_VERSION", "1_0")
-V2_0 = VERSION == "2_0"
+# VERSION = os.getenv("USE_VERSION", "1_0")
+# V2_0 = VERSION == "2_0"
 
 # RETAIN_TOKN = float(os.getenv("RETAIN_TOKN", "0.58"))
 
