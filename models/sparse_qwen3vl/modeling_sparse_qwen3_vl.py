@@ -298,7 +298,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 position_embeddings=position_embeddings,
                 **kwargs,
             )
-            if layer_idx in self.pruning_loc and layer_outputs.shape[1] != 1:
+            if layer_idx in self.sparse_token_dict and layer_outputs.shape[1] != 1:
                 v_t = layer_outputs[:, vision_range[0] : vision_range[1], :]
                 t_t = layer_outputs[:, text_range[0] : text_range[1], :]
                 m_v_t = v_t @ t_t.transpose(1, 2)  # [1, 576, 53]
