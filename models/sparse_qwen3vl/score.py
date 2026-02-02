@@ -8,7 +8,8 @@ import os
 
 sparse_token_list_46 = {5: 0.7, 10: 0.5, 20: 0.3}  # (4*1+3*0.7+9*0.5+20*0.3)/36=0.46
 sparse_token_list_58 = {5: 0.8, 10: 0.5, 20: 0.4}  # (6*1+5*0.8+10*0.5+15*0.4)/36=0.58
-sparse_token_list_75 = {17: 0.5} # (18*1+18*0.5)/36=0.75
+sparse_token_list_75 = {17: 0.5}  # (18*1+18*0.5)/36=0.75
+sparse_token_list_66 = {17: 0.33}  # (18*1+18*0.33)/36=0.66
 
 # sparse_token_list_192 = [300, 200, 110] if not V2_0 else [300, 200, 118]  # 2*576  4*300 10*200  16*110
 # sparse_token_list_128 = [303, 110, 36] if not V2_0 else [238, 108, 60]
@@ -23,6 +24,7 @@ sparse_token_dict = {
     0.46: sparse_token_list_46,
     0.58: sparse_token_list_58,
     0.75: sparse_token_list_75,
+    0.66: sparse_token_list_66,
 }
 
 
