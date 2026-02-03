@@ -153,8 +153,14 @@ def main():
         from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
 
         tester = Qwen3VLVisionSelectorTester(cfg["model_path"], budgets=cfg["budgets"])
+    elif cfg["model"].lower() == "qwen3vl_deepstack_selector":
+        from tester.qwen3vl_deepstack_selector_tester import Qwen3VLDeepstackSelectorTester
+
+        tester = Qwen3VLDeepstackSelectorTester(cfg["model_path"], budgets=cfg["budgets"])
+
     elif cfg["model"].lower() == "qwen3vl_sparse":
         from tester.qwen3vl_sparse_tester import Qwen3VLSparseTester
+
         tester = Qwen3VLSparseTester(cfg["model_path"], budgets=cfg["budgets"])
     else:
         raise ValueError(f"Unknown model: {cfg['model']}")
