@@ -150,7 +150,7 @@ class Qwen3VLVisionModel_DeepstackSelector(Qwen3VLVisionModel):
 class Qwen3VLModel_DeepstackSelector(Qwen3VLModel):
     def __init__(self, config):
         super().__init__(config)
-        self.visual = Qwen3VLVisionModel_Selector._from_config(config.vision_config)
+        self.visual = Qwen3VLVisionModel_DeepstackSelector._from_config(config.vision_config)
 
     def get_image_features_selector(
         self, pixel_values: torch.FloatTensor, image_grid_thw: Optional[torch.LongTensor] = None
