@@ -214,6 +214,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
         self.rotary_emb = Qwen3VLTextRotaryEmbedding(config=config)
         self.gradient_checkpointing = False
         self.selected_idx_dict = {}
+        
         # Initialize weights and apply final processing
         self.post_init()
 
@@ -298,7 +299,7 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 position_embeddings=position_embeddings,
                 **kwargs,
             )
-            if layer_idx in self.sparse_token_dict and layer_outputs.shape[1] != 1:
+            if layer_idx in self.token_budgets_dict and layer_outputs.shape[1] != 1:
                 # TAG SparseVLM 选择部分text计算attention score
                 # v_t = layer_outputs[:, vision_range[0] : vision_range[1], :]
                 # t_t = layer_outputs[:, text_range[0] : text_range[1], :]

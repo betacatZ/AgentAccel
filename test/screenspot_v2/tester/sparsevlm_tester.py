@@ -6,7 +6,7 @@ from transformers import GenerationConfig
 from models.llm_compress.modeling_sparsevlm import (
     Qwen3VLForConditionalGeneration_Sparse,
 )
-from models.llm_compress.score import sparse_token_dict
+from models.llm_compress.score import token_budgets_dict
 from .base_tester import BaseTester
 from util import find_range
 import json
@@ -31,7 +31,7 @@ class Qwen3VLSparseTester(BaseTester):
         budgets = kwargs.get("budgets", None)
         if budgets is not None:
             self.model.language_model.budgets = budgets
-            self.model.language_model.sparse_token_dict = sparse_token_dict[budgets]
+            setattr(self.model.language_model, "token_budgets_dict", token_budgets_dict[budgets])
 
         generation_config = GenerationConfig.from_pretrained(model_path, trust_remote_code=True).to_dict()
         generation_config.update(do_sample=False, temperature=0.0)

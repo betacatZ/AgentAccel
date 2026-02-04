@@ -73,7 +73,7 @@ class Qwen3VLVisionModel_DeepstackSelector(Qwen3VLVisionModel):
             in_features=config.out_hidden_size, hidden_dim=config.out_hidden_size // 2
         )
 
-    def forward(self, hidden_states: torch.Tensor, grid_thw: torch.Tensor, **kwargs) -> torch.Tensor:
+    def forward(self, hidden_states: torch.Tensor, grid_thw: torch.Tensor, **kwargs):
         """
         Args:
             hidden_states (`torch.Tensor` of shape `(seq_len, hidden_size)`):

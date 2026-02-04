@@ -6,25 +6,25 @@ import os
 
 # RETAIN_TOKN = float(os.getenv("RETAIN_TOKN", "0.58"))
 
-sparse_token_list_46 = {5: 0.7, 10: 0.5, 20: 0.3}  # (4*1+3*0.7+9*0.5+20*0.3)/36=0.46
-sparse_token_list_58 = {5: 0.8, 10: 0.5, 20: 0.4}  # (6*1+5*0.8+10*0.5+15*0.4)/36=0.58
-sparse_token_list_75 = {17: 0.5}  # (18*1+18*0.5)/36=0.75
-sparse_token_list_66 = {17: 0.33}  # (18*1+18*0.33)/36=0.66
+token_budgets_list_46 = {5: 0.7, 10: 0.5, 20: 0.3}  # (4*1+3*0.7+9*0.5+20*0.3)/36=0.46
+token_budgets_list_58 = {5: 0.8, 10: 0.5, 20: 0.4}  # (6*1+5*0.8+10*0.5+15*0.4)/36=0.58
+token_budgets_list_75 = {17: 0.5}  # (18*1+18*0.5)/36=0.75
+token_budgets_list_66 = {17: 0.33}  # (18*1+18*0.33)/36=0.66
 
 # sparse_token_list_192 = [300, 200, 110] if not V2_0 else [300, 200, 118]  # 2*576  4*300 10*200  16*110
 # sparse_token_list_128 = [303, 110, 36] if not V2_0 else [238, 108, 60]
 # sparse_token_list_96 = [238, 48, 26] if not V2_0 else [246, 54, 28]
 # sparse_token_list_64 = [66, 30, 17] if not V2_0 else [66, 34, 20]
 
-sparse_token_dict = {
+token_budgets_dict = {
     # 192: sparse_token_list_192,
     # 128: sparse_token_list_128,
     # 96: sparse_token_list_96,
     # 64: sparse_token_list_64,
-    0.46: sparse_token_list_46,
-    0.58: sparse_token_list_58,
-    0.75: sparse_token_list_75,
-    0.66: sparse_token_list_66,
+    0.46: token_budgets_list_46,
+    0.58: token_budgets_list_58,
+    0.75: token_budgets_list_75,
+    0.66: token_budgets_list_66,
 }
 
 
@@ -42,7 +42,7 @@ def attn_postprocess_topk(self_attn_weights, text_range, vision_range, t_token_i
 
     s_flag = True  # s_flag controls whether token merge is needed.
 
-    sparse_token_list = sparse_token_dict[budgets]
+    sparse_token_list = token_budgets_dict[budgets]
     v_token_num = vision_range[1] - vision_range[0]
     token_num = int(sparse_token_list[layer_idx] * v_token_num)
     reduce_token_num = v_token_num - token_num
@@ -82,6 +82,6 @@ if __name__ == "__main__":
     t_token_idx = torch.tensor([700, 701, 702])
     layer_idx = 2
     indices, s_flag, relation_vis_text = attn_postprocess_topk(
-        self_attn_weights, text_range, vision_range, t_token_idx, layer_idx
+        self_attn_weights, text_range, vision_range, t_token_idx, layer_idx, budgets=0.75
     )
     print(indices, s_flag, relation_vis_text)
