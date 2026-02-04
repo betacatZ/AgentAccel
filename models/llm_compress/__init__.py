@@ -18,7 +18,7 @@ from transformers.utils.import_utils import define_import_structure
 
 if TYPE_CHECKING:
     from .configuration_qwen3_vl import *
-    from .modeling_sparse_qwen3_vl import *
+    from .modeling_sparsevlm import *
     from .processing_qwen3_vl import *
     from .video_processing_qwen3_vl import *
 else:

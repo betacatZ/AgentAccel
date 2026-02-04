@@ -3,29 +3,35 @@ import torch
 from transformers import AutoProcessor, AutoTokenizer
 from transformers import GenerationConfig
 
-from models.token_compression.selector_model import (
-    Qwen3VLForConditionalGeneration_Selector,
+from models.llm_compress.modeling_sparsevlm import (
+    Qwen3VLForConditionalGeneration_Sparse,
 )
-
+from models.llm_compress.score import sparse_token_dict
 from .base_tester import BaseTester
+from util import find_range
 import json
 
 
-class Qwen3VLVisionSelectorTester(BaseTester):
+class Qwen3VLSparseTester(BaseTester):
     def __init__(self, model_path: str, device: str = "cuda", **kwargs) -> None:
         super().__init__(model_path, device, **kwargs)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-        self.model = Qwen3VLForConditionalGeneration_Selector.from_pretrained(
+        self.model = Qwen3VLForConditionalGeneration_Sparse.from_pretrained(
             model_path,
             device_map=device,
             torch_dtype=torch.bfloat16,
-            attn_implementation="flash_attention_2",
+            attn_implementation="eager",
         ).eval()
+
+        # budgets = kwargs.get("budgets", None)
+        # if budgets is not None:
+        #     self.model.visual.budgets = budgets
+        self.processor = AutoProcessor.from_pretrained(model_path)
 
         budgets = kwargs.get("budgets", None)
         if budgets is not None:
-            self.model.visual.budgets = budgets
-        self.processor = AutoProcessor.from_pretrained(model_path)
+            self.model.language_model.budgets = budgets
+            self.model.language_model.sparse_token_dict = sparse_token_dict[budgets]
 
         generation_config = GenerationConfig.from_pretrained(model_path, trust_remote_code=True).to_dict()
         generation_config.update(do_sample=False, temperature=0.0)
@@ -103,67 +109,18 @@ class Qwen3VLVisionSelectorTester(BaseTester):
         inputs = self.processor.apply_chat_template(
             messages, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors="pt"
         ).to(self.model.device)
-
-        generated_ids = self.model.generate(**inputs, max_new_tokens=512)
+        text_range, vision_range = find_range(inputs["input_ids"], self.tokenizer)
+        self.text_range, self.vision_range = text_range, vision_range
+        generated_ids = self.model.generate(
+            **inputs, max_new_tokens=512, text_range=text_range, vision_range=vision_range
+        )
         generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
         response = self.processor.batch_decode(
             generated_ids_trimmed, skip_special_tokens=False, clean_up_tokenization_spaces=False
         )[0]
-        # response = self.guide_text + response
-        # cut_index = response.rfind("}")
-        # if cut_index != -1:
-        #     response = response[: cut_index + 1]
-
         coordinates = self._parse_output(response)
 
         return coordinates, response
-
-    # def generate_click_coordinate_batch(self, instructions: list[str], images: list[Image.Image]):
-    #     """
-    #     批量生成点击坐标。
-
-    #     Args:
-    #         instructions (list[str]): 每张图片对应的 instruction
-    #         images (list[PIL.Image.Image]): 待处理图片列表
-
-    #     Returns:
-    #         click_points (list[tuple[float, float] | None]): 每张图片预测的点击坐标
-    #         responses (list[str]): 每张图片的原始模型输出
-    #     """
-    #     messages_batch = []
-    #     for instruction, image in zip(instructions, images):
-    #         messages = [
-    #             {"role": "system", "content": [{"type": "text", "text": self.system_prompt}]},
-    #             {
-    #                 "role": "user",
-    #                 "content": [
-    #                     {"type": "text", "text": instruction},
-    #                     {
-    #                         "type": "image_url",
-    #                         "image_url": {"url": "data:image/png;base64," + convert_pil_image_to_base64(image)},
-    #                     },
-    #                 ],
-    #             },
-    #         ]
-    #         text_input = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    #         messages_batch.append(text_input)
-
-    #     # 批量编码
-    #     inputs = self.processor(text=messages_batch, images=images, padding=True, return_tensors="pt").to(self.model.device)
-
-    #     # 批量生成
-    #     generated_ids = self.model.generate(**inputs, max_new_tokens=512)
-
-    #     # 批量解码
-    #     generated_ids_trimmed = [out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)]
-    #     responses = self.processor.batch_decode(
-    #         generated_ids_trimmed, skip_special_tokens=False, clean_up_tokenization_spaces=False
-    #     )
-
-    #     # 解析坐标
-    #     click_points = [self._parse_output(resp) for resp in responses]
-
-    #     return click_points, responses
 
     def _parse_output(self, response: str) -> tuple[float, float] | None:
         try:

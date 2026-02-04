@@ -1,5 +1,5 @@
-from .qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
-from models.token_compression.deepstack_selector_model import (
+from .visionselector_tester import Qwen3VLVisionSelectorTester
+from models.selector.deepstack_selector_model import (
     Qwen3VLForConditionalGeneration_DeepstackSelector,
 )
 from transformers import GenerationConfig

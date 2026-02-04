@@ -11,8 +11,8 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import json
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from tester.qwen3vl_visionselector_tester import Qwen3VLVisionSelectorTester
-from tester.qwen3vl_sparse_tester import Qwen3VLSparseTester
+from test.screenspot_v2.tester.visionselector_tester import Qwen3VLVisionSelectorTester
+from test.screenspot_v2.tester.sparsevlm_tester import Qwen3VLSparseTester
 from util import align_size_to_patch
 
 
@@ -302,7 +302,7 @@ def visualize_sparse_tokens(
 
     # 检查是否有保存的token选择信息
     if hasattr(text_model, "selected_idx_list"):
-        selected_idx_list = text_model.selected_idx_list
+        selected_idx_list = text_model.selected_idx_dict
     draw_bbox_and_pred(
         image=image,
         bbox=sample["bbox"],
