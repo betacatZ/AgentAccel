@@ -150,16 +150,16 @@ def main():
 
         tester = MobiMindTester(cfg["model_path"])
     elif cfg["model"].lower() == "qwen3vl_vision_selector":
-        from test.screenspot_v2.tester.visionselector_tester import Qwen3VLVisionSelectorTester
+        from tester.visionselector_tester import Qwen3VLVisionSelectorTester
 
         tester = Qwen3VLVisionSelectorTester(cfg["model_path"], budgets=cfg["budgets"])
     elif cfg["model"].lower() == "qwen3vl_deepstack_selector":
-        from test.screenspot_v2.tester.deepstack_selector_tester import Qwen3VLDeepstackSelectorTester
+        from tester.deepstack_selector_tester import Qwen3VLDeepstackSelectorTester
 
         tester = Qwen3VLDeepstackSelectorTester(cfg["model_path"], budgets=cfg["budgets"])
 
     elif cfg["model"].lower() == "qwen3vl_sparse":
-        from test.screenspot_v2.tester.sparsevlm_tester import Qwen3VLSparseTester
+        from tester.sparsevlm_tester import Qwen3VLSparseTester
 
         tester = Qwen3VLSparseTester(cfg["model_path"], budgets=cfg["budgets"])
     else:
