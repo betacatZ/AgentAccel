@@ -299,13 +299,15 @@ class Qwen3VLTextModel_Sparse(Qwen3VLTextModel):
                 **kwargs,
             )
             if layer_idx in self.sparse_token_dict and layer_outputs.shape[1] != 1:
-                v_t = layer_outputs[:, vision_range[0] : vision_range[1], :]
-                t_t = layer_outputs[:, text_range[0] : text_range[1], :]
-                m_v_t = v_t @ t_t.transpose(1, 2)  # [1, 576, 53]
-                m_v_t = m_v_t.softmax(2).mean(1)  # [1, 53]
-                t_token_idx = torch.where(m_v_t > m_v_t.mean())
-                t_token_idx = t_token_idx[1]
-                t_token_idx = t_token_idx + text_range[0]
+                # TAG SparseVLM 选择部分text计算attention score
+                # v_t = layer_outputs[:, vision_range[0] : vision_range[1], :]
+                # t_t = layer_outputs[:, text_range[0] : text_range[1], :]
+                # m_v_t = v_t @ t_t.transpose(1, 2)  # [1, 576, 53]
+                # m_v_t = m_v_t.softmax(2).mean(1)  # [1, 53]
+                # t_token_idx = torch.where(m_v_t > m_v_t.mean())
+                # t_token_idx = t_token_idx[1]
+
+                t_token_idx = torch.arange(text_range[0], text_range[1], device=hidden_states.device)
                 indices, s_flag, relation_vis_text, new_vision_range, new_text_range = attn_postprocess_topk(
                     attn_weights, text_range, vision_range, t_token_idx, layer_idx, self.budgets
                 )
